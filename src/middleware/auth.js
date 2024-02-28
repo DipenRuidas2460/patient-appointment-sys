@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+const { verify } = require("jsonwebtoken");
 require("dotenv").config();
 
 const validateTokenMiddleware = (req, res, next) => {
@@ -11,7 +11,7 @@ const validateTokenMiddleware = (req, res, next) => {
   }
   token = token.split(" ")[1];
   try {
-    const decodedToken = jwt.verify(token, secretKey);
+    const decodedToken = verify(token, secretKey);
     if (decodedToken) {
       req.person = decodedToken;
       req.person.id = decodedToken.id;

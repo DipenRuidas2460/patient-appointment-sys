@@ -1,56 +1,59 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const User = require("./user")
 
-const Clinic = sequelize.define(
-  "Clinic",
+const WeekDays = sequelize.define(
+  "WeekDays",
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    clinicName: {
+    dayName: {
       type: DataTypes.STRING,
     },
-    address: {
+    clinicOpeningTime: {
       type: DataTypes.STRING,
     },
-    city: {
+    clinicClosingTime: {
       type: DataTypes.STRING,
     },
-    state: {
+    lunchTimeStart: {
       type: DataTypes.STRING,
     },
-    zip: {
+    lunchTimeEnd: {
       type: DataTypes.STRING,
     },
-    country: {
+    sessionTiming: {
       type: DataTypes.STRING,
     },
-    phone: {
+    sessionBreakStart: {
       type: DataTypes.STRING,
     },
-    email: {
+    sessionBreakEnd: {
       type: DataTypes.STRING,
     },
-    businessDetails: {
-      type: DataTypes.STRING,
-    },
-    doctorId: {
+    noOfSession: {
       type: DataTypes.INTEGER,
+    },
+    isOpen: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+    clinicId: {
+        type: DataTypes.INTEGER,
     },
   },
   {
-    tableName: "Clinic",
+    tableName: "WeekDays",
     updatedAt: false,
   }
 );
 
 (async () => {
-  await Clinic.sync({ force: false });
+  await WeekDays.sync({ force: false });
 })();
 
-Clinic.belongsTo(User, { foreignKey: "doctorId" });
+WeekDays.belongsTo(WeekDays, { foreignKey: "clinicId" });
 
-module.exports = Clinic;
+module.exports = WeekDays;

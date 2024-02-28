@@ -1,56 +1,53 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const User = require("./user")
+const Availability = require("./availability");
 
-const Clinic = sequelize.define(
-  "Clinic",
+const User = sequelize.define(
+  "User",
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    clinicName: {
-      type: DataTypes.STRING,
-    },
-    address: {
-      type: DataTypes.STRING,
-    },
-    city: {
-      type: DataTypes.STRING,
-    },
-    state: {
-      type: DataTypes.STRING,
-    },
-    zip: {
-      type: DataTypes.STRING,
-    },
-    country: {
-      type: DataTypes.STRING,
-    },
-    phone: {
+    name: {
       type: DataTypes.STRING,
     },
     email: {
       type: DataTypes.STRING,
     },
-    businessDetails: {
+    password: {
       type: DataTypes.STRING,
     },
-    doctorId: {
+    phone: {
+      type: DataTypes.STRING,
+    },
+    photo: {
+      type: DataTypes.STRING,
+    },
+    specialty: {
+      type: DataTypes.STRING,
+    },
+    role: {
+      type: DataTypes.ENUM("patient", "admin", "doctor"),
+      defaultValue: "patient",
+    },
+    availabilityId: {
       type: DataTypes.INTEGER,
+    },
+    fpToken: {
+      type: DataTypes.STRING,
     },
   },
   {
-    tableName: "Clinic",
-    updatedAt: false,
+    tableName: "User",
   }
 );
 
 (async () => {
-  await Clinic.sync({ force: false });
+  await User.sync({ force: false });
 })();
 
-Clinic.belongsTo(User, { foreignKey: "doctorId" });
+User.belongsTo(Availability, { foreignKey: "availabilityId" });
 
-module.exports = Clinic;
+module.exports = User;

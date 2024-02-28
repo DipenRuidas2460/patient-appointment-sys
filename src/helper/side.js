@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
+const { verify } = require("jsonwebtoken");
 require("dotenv").config();
 const secretKey = process.env.TOKEN_secret_key;
-const bcrypt = require("bcrypt");
+const { hash, compare } = require("bcrypt");
 
 const validateToken = (token) => {
   try {
@@ -9,7 +9,7 @@ const validateToken = (token) => {
       return false;
     }
     token = token.split(" ")[1];
-    const decodedToken = jwt.verify(token, secretKey);
+    const decodedToken = verify(token, secretKey);
     return decodedToken;
   } catch (error) {
     console.log(error.message);
@@ -31,13 +31,13 @@ const generateString = (length) => {
 // Function to encrypt a password
 async function encryptPassword(password) {
   const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  const hashedPassword = await hash(password, saltRounds);
   return hashedPassword;
 }
 
 // Function to compare a password with its encrypted version
 async function checkPassword(inputPassword, encryptedPassword) {
-  const passwordMatch = await bcrypt.compare(inputPassword, encryptedPassword);
+  const passwordMatch = await compare(inputPassword, encryptedPassword);
   return passwordMatch;
 }
 
@@ -65,7 +65,7 @@ function getUserbyToken(req) {
   token = token.split(" ")[1];
 
   try {
-    const decodedToken = jwt.verify(token, secretKey);
+    const decodedToken = verify(token, secretKey);
 
     return (req.person = decodedToken);
   } catch (error) {
@@ -86,7 +86,7 @@ function generateRandomString(length) {
   return randomString;
 }
 
-module.exports = {
+module.exports =  {
   validateToken,
   generateString,
   encryptPassword,

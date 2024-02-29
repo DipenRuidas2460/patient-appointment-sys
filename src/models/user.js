@@ -1,6 +1,5 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const Availability = require("./availability");
 
 const User = sequelize.define(
   "User",
@@ -32,22 +31,18 @@ const User = sequelize.define(
       type: DataTypes.ENUM("patient", "admin", "doctor"),
       defaultValue: "patient",
     },
-    availabilityId: {
-      type: DataTypes.INTEGER,
-    },
     fpToken: {
       type: DataTypes.STRING,
     },
   },
   {
     tableName: "User",
+    updatedAt: false,
   }
 );
 
 (async () => {
   await User.sync({ force: false });
 })();
-
-User.belongsTo(Availability, { foreignKey: "availabilityId" });
 
 module.exports = User;

@@ -9,36 +9,35 @@ const {
 } = require("../helper/side");
 const moment = require("moment");
 const { sendMail } = require("../helper/sendMail");
-const { Op } = require("sequelize");
-const { findAll, findOne, update, destroy, create } = require("../models/user");
+const User = require("../models/user");
 
 const secretKey = process.env.TOKEN_secret_key;
 const expiresIn = "24h";
 
 const addUser = asyncHandler(async (req, res) => {
   try {
-    const { name, phone, email, password, role, specialty, availabilityId } =
+    const { name, phone, email, password, role, specialty } =
       req.body;
 
-    let filTypeArr = null;
+    let profilePhoto = null;
+    const randomInRange = Math.floor(Math.random() * 10) + 1;
     if (req?.files?.photo) {
-      const profilePhoto = req.files.photo;
-      filTypeArr = profilePhoto.name.split(".");
+      profilePhoto = req.files.photo;
       const imagePath = join(
         __dirname,
         "../uploads/profileImage/",
-        `${phone}_profile.${filTypeArr[1]}`
+        `${randomInRange}_profile_photo`
       );
       await profilePhoto.mv(imagePath);
     }
     const currentDate = moment().tz("Asia/Kolkata").format("YYYY-MM-DD, HH:mm");
 
     if (email != "" || phone != "") {
-      const findEmail = await findOne({
+      const findEmail = await User.findOne({
         where: { email: email },
       });
 
-      const findPhoneNumber = await findOne({
+      const findPhoneNumber = await User.findOne({
         where: { phone: phone },
       });
 
@@ -63,14 +62,13 @@ const addUser = asyncHandler(async (req, res) => {
       email,
       password: passwrd,
       phone,
-      photo: filTypeArr ? `${phone}_profile.${filTypeArr[1]}` : null,
+      photo: profilePhoto ? `${randomInRange}_profile_photo` : null,
       role,
       specialty,
-      availabilityId,
       createdTime: currentDate,
     };
 
-    const userDetails = await create(newReqData);
+    const userDetails = await User.create(newReqData);
     const response = await userDetails.save();
 
     const token = sign(
@@ -96,7 +94,6 @@ const addUser = asyncHandler(async (req, res) => {
         createdTime,
         photo,
         specialty,
-        availabilityId,
       } = response;
 
       const registerUserData = {
@@ -107,7 +104,6 @@ const addUser = asyncHandler(async (req, res) => {
         role,
         photo: photo ? photo : null,
         specialty: specialty ? specialty : null,
-        availabilityId: availabilityId ? availabilityId : null,
         token,
         createdTime,
       };
@@ -143,7 +139,7 @@ const login = asyncHandler(async (req, res) => {
       });
     }
 
-    const userDetails = await findOne({ where: { email: email } });
+    const userDetails = await User.findOne({ where: { email: email } });
 
     if (!userDetails) {
       return res
@@ -171,9 +167,6 @@ const login = asyncHandler(async (req, res) => {
       phone: userDetails.phone,
       photo: userDetails.photo ? userDetails.photo : null,
       specialty: userDetails.specialty ? userDetails.specialty : null,
-      availabilityId: userDetails.availabilityId
-        ? userDetails.availabilityId
-        : null,
       role: userDetails.role,
     };
 
@@ -211,7 +204,7 @@ const forgetPass = asyncHandler(async (req, res) => {
   try {
     const { email } = req.body;
 
-    const userDetails = await findOne({
+    const userDetails = await User.findOne({
       where: { email: email },
     });
     if (!userDetails) {
@@ -219,7 +212,7 @@ const forgetPass = asyncHandler(async (req, res) => {
     }
 
     const token = generateString(20);
-    await update({ fpToken: token }, { where: { email: email } });
+    await User.update({ fpToken: token }, { where: { email: email } });
 
     const mailData = {
       respMail: email,
@@ -261,7 +254,7 @@ const fpUpdatePass = asyncHandler(async (req, res) => {
 
     const { token } = req.body;
 
-    const userInfo = await findOne({ where: { fpToken: token } });
+    const userInfo = await User.findOne({ where: { fpToken: token } });
     if (!userInfo)
       return res
         .status(400)
@@ -271,7 +264,7 @@ const fpUpdatePass = asyncHandler(async (req, res) => {
       reqBody.password = await encryptPassword(reqBody.password);
     }
 
-    const response = await update(
+    const response = await User.update(
       { password: reqBody.password },
       {
         where: { fpToken: token },
@@ -297,40 +290,34 @@ const fpUpdatePass = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   try {
     let reqBody = req.body;
-    const userData = await findOne({ where: { id: req.person.id } });
-    let filTypeArr = null;
-    if (req.files?.photo) {
-      const profilePhoto = req.files.photo;
-      filTypeArr = profilePhoto.name.split(".");
+    const userData = await User.findOne({ where: { id: req.person.id } });
+
+    let updatedImage = null;
+    const randomInRange = Math.floor(Math.random() * 10) + 1;
+    const updatedPhotoName = `${randomInRange}_profile_photo`;
+    if (req?.files?.photo) {
+      updatedImage = req.files.photo;
       const imagePath = join(
         __dirname,
         "../uploads/profileImage/",
-        `${phone}_profile.${filTypeArr[1]}`
+        `${userData.photo ? userData.photo : updatedPhotoName}`
       );
-      await profilePhoto.mv(imagePath);
+      await updatedImage.mv(imagePath);
     }
 
-    const updatedImage = req.files.photo;
-    const imagePath = path.join(
-      __dirname,
-      "../uploads/profileImage/",
-      `${userData.photo}`
-    );
-    await updatedImage.mv(imagePath);
-
-    if (reqBody.password ) {
+    if (reqBody.password) {
       reqBody.password = await encryptPassword(reqBody.password);
     }
 
     if (updatedImage) {
-      reqBody.photo = userData.photo;
+      reqBody.photo = userData.photo ? userData.photo : updatedPhotoName;
     }
 
-    const response = await update(reqBody, {
+    const response = await User.update(reqBody, {
       where: { id: req.person.id },
     });
 
-    return res.status(201).json({
+    return res.status(200).json({
       status: response[0] === 0 ? 404 : 200,
       data: response,
       message: response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
@@ -343,25 +330,74 @@ const updateUser = asyncHandler(async (req, res) => {
   }
 });
 
+const updateUserByAdmin = asyncHandler(async (req, res) => {
+  try {
+    let reqBody = req.body;
+    let userId = req.params.userId;
+    if (req.person.role === "admin") {
+      const userData = await User.findOne({ where: { id: userId } });
+
+      let updatedImage = null;
+      const randomInRange = Math.floor(Math.random() * 10) + 1;
+      const updatedPhotoName = `${randomInRange}_profile_photo`;
+      if (req?.files?.photo) {
+        updatedImage = req.files.photo;
+        const imagePath = join(
+          __dirname,
+          "../uploads/profileImage/",
+          `${userData.photo ? userData.photo : updatedPhotoName}`
+        );
+        await updatedImage.mv(imagePath);
+      }
+
+      if (reqBody.password) {
+        reqBody.password = await encryptPassword(reqBody.password);
+      }
+
+      if (updatedImage) {
+        reqBody.photo = userData.photo ? userData.photo : updatedPhotoName;
+      }
+
+      const response = await User.update(reqBody, {
+        where: { id: userId },
+      });
+
+      return res.status(201).json({
+        status: response[0] === 0 ? 404 : 200,
+        data: response,
+        message:
+          response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
+      });
+    } else {
+      return res.status(403).json({ message: "Only Admin Can edit!" });
+    }
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Something went wrong" });
+  }
+});
+
 const getUserById = asyncHandler(async (req, res) => {
   try {
-    const response = await findOne({
+    const response = await User.findOne({
       where: { id: req.person.id },
       attributes: [
         "id",
-        "firstName",
-        "lastName",
+        "name",
         "email",
-        "phoneNumber",
+        "phone",
         "role",
         "photo",
+        "specialty",
       ],
     });
 
     return res.status(200).json({
       status: "success",
       data: response,
-      profileImage: `/assets/image/${response.photo}`,
+      profileImage: response.photo ? `/assets/image/${response.photo}` : null,
       message: response ? "Successfully fetch data" : "User Not Present!",
     });
   } catch (error) {
@@ -372,9 +408,42 @@ const getUserById = asyncHandler(async (req, res) => {
   }
 });
 
+const getUserByAdminThroughId = asyncHandler(async (req, res) => {
+  try {
+    if (req.person.role === "admin") {
+      const response = await User.findOne({
+        where: { id: req.params.userId },
+        attributes: [
+          "id",
+          "name",
+          "email",
+          "phone",
+          "role",
+          "photo",
+          "specialty",
+        ],
+      });
+
+      return res.status(200).json({
+        status: "success",
+        data: response,
+        profileImage: response.photo ? `/assets/image/${response.photo}` : null,
+        message: response ? "Successfully fetch data" : "User Not Present!",
+      });
+    } else {
+      return res.status(403).json({ message: "Only Admin Can access!" });
+    }
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Something went wrong" });
+  }
+});
+
 const updatePassword = asyncHandler(async (req, res) => {
   try {
-    const response = await findOne({ where: { id: req.person.id } });
+    const response = await User.findOne({ where: { id: req.person.id } });
 
     const { oldPassword, password } = req.body;
 
@@ -417,34 +486,9 @@ const updatePassword = asyncHandler(async (req, res) => {
   }
 });
 
-const getAllUsersByQuery = asyncHandler(async (req, res) => {
+const getAllUsers = asyncHandler(async (req, res) => {
   try {
-    const keyword = req.query.search
-      ? {
-          [Op.or]: [
-            { firstName: { [Op.like]: `%${req.query.search}%` } },
-            { lastName: { [Op.like]: `%${req.query.search}%` } },
-            { email: { [Op.like]: `%${req.query.search}%` } },
-          ],
-        }
-      : {};
-
-    const response = await findAll({
-      where: {
-        ...keyword,
-        id: { [Op.not]: req.person.id },
-      },
-      attributes: [
-        "id",
-        "firstName",
-        "lastName",
-        "email",
-        "photo",
-        "role",
-        "phoneNumber",
-      ],
-    });
-
+    const response = await User.findAll({});
     return res.status(200).json({
       status: "success",
       data: response,
@@ -460,6 +504,33 @@ const getAllUsersByQuery = asyncHandler(async (req, res) => {
   }
 });
 
+const deleteUserByAdminThroughId = asyncHandler(async (req, res) => {
+  try {
+    if (req.person.role === "admin") {
+      const userData = await User.findOne({ where: { id: req.params.userId } });
+      if (userData) {
+        await User.destroy({
+          where: { id: req.params.userId },
+        });
+
+        return res.status(200).json({
+          status: "success",
+          message: "User data delete successfully!",
+        });
+      } else {
+        return res.status(404).json({ message: "User data not found!" });
+      }
+    } else {
+      return res.status(403).json({ message: "Only Admin Can access!" });
+    }
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Something went wrong" });
+  }
+});
+
 module.exports = {
   login,
   addUser,
@@ -469,5 +540,8 @@ module.exports = {
   updateUser,
   getUserById,
   updatePassword,
-  getAllUsersByQuery,
+  getAllUsers,
+  updateUserByAdmin,
+  getUserByAdminThroughId,
+  deleteUserByAdminThroughId,
 };

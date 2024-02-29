@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
+const Clinic = require("./clinic");
 
 const WeekDays = sequelize.define(
   "WeekDays",
@@ -41,7 +42,7 @@ const WeekDays = sequelize.define(
       defaultValue: true,
     },
     clinicId: {
-        type: DataTypes.INTEGER,
+      type: DataTypes.INTEGER,
     },
   },
   {
@@ -54,6 +55,6 @@ const WeekDays = sequelize.define(
   await WeekDays.sync({ force: false });
 })();
 
-WeekDays.belongsTo(WeekDays, { foreignKey: "clinicId" });
+WeekDays.belongsTo(Clinic, { foreignKey: "clinicId", as: "clinic" });
 
 module.exports = WeekDays;

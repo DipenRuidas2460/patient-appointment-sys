@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
+const User = require("./user");
 
 const Availability = sequelize.define(
   "Availability",
@@ -18,6 +19,9 @@ const Availability = sequelize.define(
     sessionTiming: {
       type: DataTypes.STRING,
     },
+    doctorId: {
+      type: DataTypes.INTEGER,
+    },
   },
   {
     tableName: "Availability",
@@ -28,5 +32,7 @@ const Availability = sequelize.define(
 (async () => {
   await Availability.sync({ force: false });
 })();
+
+Availability.belongsTo(User, { foreignKey: "doctorId", as: "doctor" });
 
 module.exports = Availability;

@@ -46,8 +46,8 @@ const Appointment = sequelize.define(
   await Appointment.sync({ force: false });
 })();
 
-Appointment.belongsTo(Clinic, { foreignKey: "clinicId" });
-Appointment.belongsTo(User, { foreignKey: "userId", as: "patient" });
-Appointment.belongsTo(User, { foreignKey: "doctorId", as: "doctor" });
+Appointment.belongsTo(Clinic, { foreignKey: "clinicId", as:"clinicdetails" });
+Appointment.belongsTo(User, { foreignKey: "userId", as: "patientInfo" });
+Appointment.belongsTo(User, { foreignKey: "doctorId", as: "doctorInfo" });
 
 module.exports = Appointment;

@@ -1,5 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
+const UserTypes = require("./userType");
+const Business = require("./business");
 
 const User = sequelize.define(
   "User",
@@ -27,9 +29,14 @@ const User = sequelize.define(
     specialty: {
       type: DataTypes.STRING,
     },
-    role: {
-      type: DataTypes.ENUM("patient", "admin", "doctor"),
-      defaultValue: "patient",
+    status: {
+      type: DataTypes.STRING,
+    },
+    roleId: {
+      type: DataTypes.INTEGER,
+    },
+    businessId: {
+      type: DataTypes.INTEGER,
     },
     fpToken: {
       type: DataTypes.STRING,
@@ -44,5 +51,8 @@ const User = sequelize.define(
 (async () => {
   await User.sync({ force: false });
 })();
+
+User.belongsTo(UserTypes, { foreignKey: "roleId" });
+User.belongsTo(Business, { foreignKey: "businessId" });
 
 module.exports = User;

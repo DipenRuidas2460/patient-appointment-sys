@@ -28,6 +28,15 @@ const generateString = (length) => {
   return `TX${result}`;
 };
 
+function getTimeDifference(time1, time2) {
+  const date1 = new Date(`1970-01-01T${time1}:00Z`);
+  const date2 = new Date(`1970-01-01T${time2}:00Z`);
+  const timeDifference = date2 - date1;
+  const hours = Math.floor(timeDifference / 3600000);
+  const minutes = Math.floor((timeDifference % 3600000) / 60000);
+  return hours * 60 + minutes;
+}
+
 // Function to encrypt a password
 async function encryptPassword(password) {
   const saltRounds = 10;
@@ -86,7 +95,7 @@ function generateRandomString(length) {
   return randomString;
 }
 
-module.exports =  {
+module.exports = {
   validateToken,
   generateString,
   encryptPassword,
@@ -94,4 +103,5 @@ module.exports =  {
   convertToArray,
   getUserbyToken,
   generateRandomString,
+  getTimeDifference,
 };

@@ -15,7 +15,7 @@ const validateTokenMiddleware = (req, res, next) => {
     if (decodedToken) {
       req.person = decodedToken;
       req.person.id = decodedToken.id;
-      req.person.role = decodedToken.role;
+      req.person.roleId = decodedToken.roleId;
       next();
     } else {
       return res.status(401).json({ status: "error", error: "unauthorized" });

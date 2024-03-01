@@ -10,13 +10,14 @@ const {
 const moment = require("moment");
 const { sendMail } = require("../helper/sendMail");
 const User = require("../models/user");
+const UserTypes = require("../models/userType");
 
 const secretKey = process.env.TOKEN_secret_key;
 const expiresIn = "24h";
 
 const addUser = asyncHandler(async (req, res) => {
   try {
-    const { name, phone, email, password, role, specialty } =
+    const { name, phone, email, password, roleId, specialty, status } =
       req.body;
 
     let profilePhoto = null;
@@ -63,8 +64,10 @@ const addUser = asyncHandler(async (req, res) => {
       password: passwrd,
       phone,
       photo: profilePhoto ? `${randomInRange}_profile_photo` : null,
-      role,
+      roleId,
+      businessId,
       specialty,
+      status,
       createdTime: currentDate,
     };
 
@@ -72,7 +75,7 @@ const addUser = asyncHandler(async (req, res) => {
     const response = await userDetails.save();
 
     const token = sign(
-      { id: userDetails.id, role: userDetails.role },
+      { id: userDetails.id, roleId: userDetails.roleId },
       secretKey,
       { expiresIn }
     );
@@ -90,7 +93,9 @@ const addUser = asyncHandler(async (req, res) => {
         name,
         email,
         phone,
-        role,
+        roleId,
+        businessId,
+        status,
         createdTime,
         photo,
         specialty,
@@ -101,7 +106,9 @@ const addUser = asyncHandler(async (req, res) => {
         name,
         email,
         phone,
-        role,
+        roleId,
+        businessId,
+        status,
         photo: photo ? photo : null,
         specialty: specialty ? specialty : null,
         token,
@@ -156,7 +163,7 @@ const login = asyncHandler(async (req, res) => {
     }
 
     const token = sign(
-      { id: userDetails.id, role: userDetails.role },
+      { id: userDetails.id, roleId: userDetails.roleId },
       secretKey,
       { expiresIn }
     );
@@ -167,7 +174,9 @@ const login = asyncHandler(async (req, res) => {
       phone: userDetails.phone,
       photo: userDetails.photo ? userDetails.photo : null,
       specialty: userDetails.specialty ? userDetails.specialty : null,
-      role: userDetails.role,
+      roleId: userDetails.roleId,
+      businessId: userDetails.businessId,
+      status: userDetails.status,
     };
 
     res.header("Authorization", `Bearer ${token}`);
@@ -334,7 +343,12 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
   try {
     let reqBody = req.body;
     let userId = req.params.userId;
-    if (req.person.role === "admin") {
+    const userTypesData = await UserTypes.findOne({
+      where: {
+        id: req.person.roleId,
+      },
+    });
+    if (userTypesData && userTypesData?.typeName === "admin") {
       const userData = await User.findOne({ where: { id: userId } });
 
       let updatedImage = null;
@@ -388,7 +402,9 @@ const getUserById = asyncHandler(async (req, res) => {
         "name",
         "email",
         "phone",
-        "role",
+        "roleId",
+        "businessId",
+        "status",
         "photo",
         "specialty",
       ],
@@ -410,7 +426,12 @@ const getUserById = asyncHandler(async (req, res) => {
 
 const getUserByAdminThroughId = asyncHandler(async (req, res) => {
   try {
-    if (req.person.role === "admin") {
+    const userTypesData = await UserTypes.findOne({
+      where: {
+        id: req.person.roleId,
+      },
+    });
+    if (userTypesData && userTypesData?.typeName === "admin") {
       const response = await User.findOne({
         where: { id: req.params.userId },
         attributes: [
@@ -418,7 +439,9 @@ const getUserByAdminThroughId = asyncHandler(async (req, res) => {
           "name",
           "email",
           "phone",
-          "role",
+          "roleId",
+          "businessId",
+          "status",
           "photo",
           "specialty",
         ],
@@ -506,7 +529,12 @@ const getAllUsers = asyncHandler(async (req, res) => {
 
 const deleteUserByAdminThroughId = asyncHandler(async (req, res) => {
   try {
-    if (req.person.role === "admin") {
+    const userTypesData = await UserTypes.findOne({
+      where: {
+        id: req.person.roleId,
+      },
+    });
+    if (userTypesData && userTypesData?.typeName === "admin") {
       const userData = await User.findOne({ where: { id: req.params.userId } });
       if (userData) {
         await User.destroy({

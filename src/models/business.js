@@ -1,17 +1,19 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const User = require("./user");
 
-const Clinic = sequelize.define(
-  "Clinic",
+const Business = sequelize.define(
+  "Business",
   {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
     },
-    clinicName: {
-      type: DataTypes.STRING(),
+    businessName: {
+      type: DataTypes.STRING,
+    },
+    businessCategory: {
+      type: DataTypes.STRING,
     },
     address: {
       type: DataTypes.STRING,
@@ -34,24 +36,15 @@ const Clinic = sequelize.define(
     email: {
       type: DataTypes.STRING,
     },
-    businessDetails: {
-      type: DataTypes.STRING,
-
-    },
-    doctorId: {
-      type: DataTypes.INTEGER,
-    },
   },
   {
-    tableName: "Clinic",
+    tableName: "Business",
     updatedAt: false,
   }
 );
 
 (async () => {
-  await Clinic.sync({ force: false });
+  await Business.sync({ force: false });
 })();
 
-Clinic.belongsTo(User, { foreignKey: "doctorId", as: "doctordetails" });
-
-module.exports = Clinic;
+module.exports = Business;

@@ -19,22 +19,29 @@ const {
 const { validateTokenMiddleware } = require("../middleware/auth");
 
 const { getProfileImage } = require("../helper/fileHelper");
+
 const {
-  createAvailability,
-  fetchAvailability,
-  fetchAvailabilityById,
-  updateAvailability,
-  deleteAvailabilityByAdmin,
-  fetchAvailabilityByDoctorId,
-} = require("../controllers/availabilityController");
+  createUserTypes,
+  fetchAllUserTypes,
+  updateUserTypes,
+  deleteUserTypes,
+} = require("../controllers/userTypeController");
+
 const {
-  createWeekDays,
-  fetchWeekDays,
-  fetchWeekDaysById,
-  updateWeekDaysByAdmin,
-  deleteWeekDaysByAdmin,
-  fetchWeekDaysByClinicId,
-} = require("../controllers/weekdaysController");
+  createBusiness,
+  fetchAllBusiness,
+  fetchBusinessById,
+  updateBusinessByAdmin,
+  deleteBusinessByAdmin,
+} = require("../controllers/businessController");
+
+const {
+  createBusinessTiming,
+  fetchAllBusinessTiming,
+  fetchBusinessTimingById,
+  updateBusinessTimingByAdmin,
+  deleteBusinessTimingByAdmin,
+} = require("../controllers/businessTimingController");
 
 // -------------------- User Profile Route ----------------------------------------------------------------------------------
 
@@ -64,70 +71,54 @@ router.delete(
   deleteUserByAdminThroughId
 );
 
-// -------------------- Doctor Availability Route ----------------------------------------------------------------------------------
+// -------------------- userTypes Route ----------------------------------------------------------------------------------
+
+router.post("/userTypes/create", createUserTypes);
+router.get("/userTypes/fetch-all-userTypes", fetchAllUserTypes);
+router.put("/userTypes/update/:userTypeId", updateUserTypes);
+router.delete("/userTypes/delete/:userTypeId", deleteUserTypes);
+
+// -------------------- Business Route ----------------------------------------------------------------------------------
 
 router.post(
-  "/doctor/create-availability",
+  "/business/create-business",
   validateTokenMiddleware,
-  createAvailability
+  createBusiness
 );
-router.get(
-  "/doctor/fetch-all-availability",
-  validateTokenMiddleware,
-  fetchAvailability
-);
-router.get(
-  "/doctor/fetch-availability-byId/:availableId",
-  validateTokenMiddleware,
-  fetchAvailabilityById
-);
-router.get(
-  "/doctor/fetch-availability-DoctorId/:doctorId",
-  validateTokenMiddleware,
-  fetchAvailabilityByDoctorId
-);
+router.get("/business/fetch-all-business", fetchAllBusiness);
+router.get("/business/fetch-business-byId/:businessId", fetchBusinessById);
 router.put(
-  "/doctor/update-availability-byId/:availableId",
+  "/business/update-business-By-Admin/:businessId",
   validateTokenMiddleware,
-  updateAvailability
+  updateBusinessByAdmin
 );
 router.delete(
-  "/doctor/delete-availability-byId/:availableId",
+  "/business/delete-business-By-Admin/:businessId",
   validateTokenMiddleware,
-  deleteAvailabilityByAdmin
+  deleteBusinessByAdmin
 );
 
-// -------------------- WeekDays Route ----------------------------------------------------------------------------------
+// -------------------- Business Timing Route ----------------------------------------------------------------------------------
 
 router.post(
-  "/weekDays/create-WeekDays",
+  "/business-timing/create-businessTiming",
   validateTokenMiddleware,
-  createWeekDays
+  createBusinessTiming
 );
+router.get("/business-timing/fetch-all-businessTiming", fetchAllBusinessTiming);
 router.get(
-  "/weekDays/fetch-all-weekDays",
-  validateTokenMiddleware,
-  fetchWeekDays
-);
-router.get(
-  "/weekDays/fetch-weekDays-byId/:weekDayId",
-  validateTokenMiddleware,
-  fetchWeekDaysById
-);
-router.get(
-  "/weekDays/fetch-weekDays-clinicId/:clinicId",
-  validateTokenMiddleware,
-  fetchWeekDaysByClinicId
+  "/business-timing/fetch-businessTiming-byId/:businessTimingId",
+  fetchBusinessTimingById
 );
 router.put(
-  "/weekDays/update-weekDays-byId/:weekDayId",
+  "/business-timing/update-businessTiming-By-Admin/:businessTimingId",
   validateTokenMiddleware,
-  updateWeekDaysByAdmin
+  updateBusinessTimingByAdmin
 );
 router.delete(
-  "/weekDays/delete-weekDays-byId/:weekDayId",
+  "/business-timing/delete-businessTiming-By-Admin/:businessTimingId",
   validateTokenMiddleware,
-  deleteWeekDaysByAdmin
+  deleteBusinessTimingByAdmin
 );
 
 module.exports = router;

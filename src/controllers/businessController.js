@@ -1,18 +1,23 @@
 const asyncHandler = require("express-async-handler");
+const Business = require("../models/business");
+const UserTypes = require("../models/userType");
 
-const createWeekDays = asyncHandler(async (req, res) => {
+const createBusiness = asyncHandler(async (req, res) => {
   try {
-    if (req.person.role === "admin") {
-      const weekdaysData = await WeekDays.create(req.body);
-      const response = await weekdaysData.save();
-
+    const userTypesData = await UserTypes.findOne({
+      where: {
+        id: req.person.roleId,
+      },
+    });
+    if (userTypesData && userTypesData?.typeName === "admin") {
+      const response = await Business.create(req.body);
       return res.status(201).json({
         status: true,
         response,
-        message: "WeekDays data created successfully!",
+        message: "Business data created successfully!",
       });
     } else {
-      return res.status(403).json({ message: "Only Admin Can Created!" });
+      return res.status(403).json({ message: "Only Admin Can Add Business!" });
     }
   } catch (error) {
     console.log(error.message);
@@ -22,25 +27,12 @@ const createWeekDays = asyncHandler(async (req, res) => {
   }
 });
 
-const fetchWeekDays = asyncHandler(async (req, res) => {
+const fetchAllBusiness = asyncHandler(async (req, res) => {
   try {
-    const response = await WeekDays.findAll(
-      {},
-      {
-        include: [
-          {
-            model: Clinic,
-            as: "clinic",
-            attributes: {
-              exclude: ["createdAt"],
-            },
-          },
-        ],
-      }
-    );
+    const response = await Business.findAll({});
     return res.status(200).json({
       status: "success",
-      data: response,
+      response,
       message:
         response.length > 0 ? "Successfully fetch data" : "Data not present!",
     });
@@ -52,27 +44,14 @@ const fetchWeekDays = asyncHandler(async (req, res) => {
   }
 });
 
-const fetchWeekDaysById = asyncHandler(async (req, res) => {
+const fetchBusinessById = asyncHandler(async (req, res) => {
   try {
-    const response = await WeekDays.findOne(
-      {
-        where: { id: req.params.weekDayId },
-      },
-      {
-        include: [
-          {
-            model: Clinic,
-            as: "clinic",
-            attributes: {
-              exclude: ["createdAt"],
-            },
-          },
-        ],
-      }
-    );
+    const response = await Business.findOne({
+      where: { id: req.params.businessId },
+    });
     return res.status(200).json({
       status: "success",
-      data: response,
+      response,
       message: response ? "Successfully fetch data" : "Data not present!",
     });
   } catch (error) {
@@ -83,11 +62,16 @@ const fetchWeekDaysById = asyncHandler(async (req, res) => {
   }
 });
 
-const updateWeekDaysByAdmin = asyncHandler(async (req, res) => {
+const updateBusinessByAdmin = asyncHandler(async (req, res) => {
   try {
-    if (req.person.role === "admin") {
-      const response = await WeekDays.update(req.body, {
-        where: { id: req.params.weekDayId },
+    const userTypesData = await UserTypes.findOne({
+      where: {
+        id: req.person.roleId,
+      },
+    });
+    if (userTypesData && userTypesData?.typeName === "admin") {
+      const response = await Business.update(req.body, {
+        where: { id: req.params.businessId },
       });
       return res.status(200).json({
         status: response[0] === 0 ? 404 : 200,
@@ -106,18 +90,23 @@ const updateWeekDaysByAdmin = asyncHandler(async (req, res) => {
   }
 });
 
-const deleteWeekDaysByAdmin = asyncHandler(async (req, res) => {
+const deleteBusinessByAdmin = asyncHandler(async (req, res) => {
   try {
-    if (req.person.role === "admin") {
-      const weekdaysData = await WeekDays.findOne({
-        where: { id: req.params.weekDayId },
+    const userTypesData = await UserTypes.findOne({
+      where: {
+        id: req.person.roleId,
+      },
+    });
+    if (userTypesData && userTypesData?.typeName === "admin") {
+      const response = await Business.findOne({
+        where: { id: req.params.businessId },
       });
-      if (weekdaysData) {
-        await weekdaysData.destroy({
-          where: { id: req.params.weekDayId },
+      if (response) {
+        await Business.destroy({
+          where: { id: req.params.businessId },
         });
         return res.status(200).json({
-          message: "WeekDays data deleted Successfully!",
+          message: "Business data deleted Successfully!",
         });
       } else {
         return res.status(404).json({ message: "Data not found!" });
@@ -134,9 +123,9 @@ const deleteWeekDaysByAdmin = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  createWeekDays,
-  fetchWeekDays,
-  fetchWeekDaysById,
-  updateWeekDaysByAdmin,
-  deleteWeekDaysByAdmin,
+  createBusiness,
+  fetchAllBusiness,
+  fetchBusinessById,
+  updateBusinessByAdmin,
+  deleteBusinessByAdmin,
 };

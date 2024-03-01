@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const Clinic = require("./clinic");
 const User = require("./user");
+const Business = require("./business");
 
 const Appointment = sequelize.define(
   "Appointment",
@@ -11,29 +11,24 @@ const Appointment = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    appointment_datetime: {
+    appointmentDate: {
+      type: DataTypes.STRING,
+    },
+    appointmentTime: {
       type: DataTypes.STRING,
     },
     status: {
       type: DataTypes.ENUM("pending", "confirm", "cancel"),
       defaultValue: "pending",
     },
-    clinicId: {
+    businessId: {
       type: DataTypes.INTEGER,
     },
     userId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: User,
-        key: "id",
-      },
     },
     doctorId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: User,
-        key: "id",
-      },
     },
   },
   {
@@ -46,7 +41,7 @@ const Appointment = sequelize.define(
   await Appointment.sync({ force: false });
 })();
 
-Appointment.belongsTo(Clinic, { foreignKey: "clinicId", as:"clinicdetails" });
+Appointment.belongsTo(Business, { foreignKey: "businessId", as:"business" });
 Appointment.belongsTo(User, { foreignKey: "userId", as: "patientInfo" });
 Appointment.belongsTo(User, { foreignKey: "doctorId", as: "doctorInfo" });
 

@@ -43,6 +43,15 @@ const {
   deleteBusinessTimingByAdmin,
 } = require("../controllers/businessTimingController");
 
+const {
+  createAppointment,
+  fetchAllAppointment,
+  fetchAppointmentByAppointmentId,
+  fetchAllAppointmentByUserIdOrDoctorId,
+  updateAppointmentByAppointmentId,
+  deleteAppointmentByAdmin,
+} = require("../controllers/appointmentController");
+
 // -------------------- User Profile Route ----------------------------------------------------------------------------------
 
 router.post("/user/register", addUser);
@@ -85,8 +94,16 @@ router.post(
   validateTokenMiddleware,
   createBusiness
 );
-router.get("/business/fetch-all-business", fetchAllBusiness);
-router.get("/business/fetch-business-byId/:businessId", fetchBusinessById);
+router.get(
+  "/business/fetch-all-business",
+  validateTokenMiddleware,
+  fetchAllBusiness
+);
+router.get(
+  "/business/fetch-business-byId/:businessId",
+  validateTokenMiddleware,
+  fetchBusinessById
+);
 router.put(
   "/business/update-business-By-Admin/:businessId",
   validateTokenMiddleware,
@@ -105,9 +122,14 @@ router.post(
   validateTokenMiddleware,
   createBusinessTiming
 );
-router.get("/business-timing/fetch-all-businessTiming", fetchAllBusinessTiming);
+router.get(
+  "/business-timing/fetch-all-businessTiming",
+  validateTokenMiddleware,
+  fetchAllBusinessTiming
+);
 router.get(
   "/business-timing/fetch-businessTiming-byId/:businessTimingId",
+  validateTokenMiddleware,
   fetchBusinessTimingById
 );
 router.put(
@@ -119,6 +141,39 @@ router.delete(
   "/business-timing/delete-businessTiming-By-Admin/:businessTimingId",
   validateTokenMiddleware,
   deleteBusinessTimingByAdmin
+);
+
+// -------------------- Appointment Booking Route ----------------------------------------------------------------------------------
+
+router.post(
+  "/appointment-booking/create",
+  validateTokenMiddleware,
+  createAppointment
+);
+router.get(
+  "/appointment-booking/fetch-all-appointment",
+  validateTokenMiddleware,
+  fetchAllAppointment
+);
+router.get(
+  "/appointment-booking/fetch-appointment/:appointmentId",
+  validateTokenMiddleware,
+  fetchAppointmentByAppointmentId
+);
+router.get(
+  "/appointment-booking/fetch-appointment-doctor-user",
+  validateTokenMiddleware,
+  fetchAllAppointmentByUserIdOrDoctorId
+);
+router.put(
+  "/appointment-booking/update-appointment/:appointmentId",
+  validateTokenMiddleware,
+  updateAppointmentByAppointmentId
+);
+router.delete(
+  "/appointment-booking/delete-appointment/:appointmentId",
+  validateTokenMiddleware,
+  deleteAppointmentByAdmin
 );
 
 module.exports = router;

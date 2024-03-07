@@ -1,45 +1,50 @@
-const { DataTypes } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
 
-const Business = sequelize.define(
-  "Business",
+class Business extends Model {}
+
+Business.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       primaryKey: true,
       autoIncrement: true,
     },
     businessName: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(255),
     },
-    businessCategory: {
-      type: DataTypes.STRING,
+    category: {
+      type: DataTypes.STRING(255),
     },
     address: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
     },
     city: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(255),
     },
     state: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(255),
     },
-    zip: {
-      type: DataTypes.STRING,
+    zipCode: {
+      type: DataTypes.STRING(55),
     },
-    country: {
-      type: DataTypes.STRING,
-    },
-    phone: {
-      type: DataTypes.STRING,
+    phoneNo: {
+      type: DataTypes.STRING(20),
     },
     email: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING(255),
+    },
+    status: {
+      type: DataTypes.INTEGER,
+    },
+    createdAt: {
+      type: DataTypes.DATE,
     },
   },
   {
     tableName: "Business",
-    updatedAt: false,
+    timestamps: false,
+    sequelize,
   }
 );
 

@@ -1,29 +1,25 @@
 const asyncHandler = require("express-async-handler");
-const Business = require("../models/business");
-const UserTypes = require("../models/userType");
+const Business = require("../models/Business");
 
 const createBusiness = asyncHandler(async (req, res) => {
   try {
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
-      },
-    });
-    if (userTypesData && userTypesData?.typeName === "admin") {
+    if (req.person.userTypeId === 1 || req.person.userTypeId === 2) {
       const response = await Business.create(req.body);
       return res.status(201).json({
-        status: true,
+        status: 200,
         response,
         message: "Business data created successfully!",
       });
     } else {
-      return res.status(403).json({ message: "Only Admin Can Add Business!" });
+      return res
+        .status(200)
+        .json({ status: 403, message: "Only Admin Can Add Business!" });
     }
   } catch (error) {
     console.log(error.message);
     return res
-      .status(500)
-      .json({ status: false, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error!" });
   }
 });
 
@@ -66,7 +62,7 @@ const updateBusinessByAdmin = asyncHandler(async (req, res) => {
   try {
     const userTypesData = await UserTypes.findOne({
       where: {
-        id: req.person.roleId,
+        id: req.person.userTypeId,
       },
     });
     if (userTypesData && userTypesData?.typeName === "admin") {
@@ -80,7 +76,9 @@ const updateBusinessByAdmin = asyncHandler(async (req, res) => {
           response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
       });
     } else {
-      return res.status(403).json({ message: "Only Admin Can Edit!" });
+      return res
+        .status(200)
+        .json({ status: 403, message: "Only Admin Can Edit!" });
     }
   } catch (error) {
     console.log(error.message);
@@ -94,7 +92,7 @@ const deleteBusinessByAdmin = asyncHandler(async (req, res) => {
   try {
     const userTypesData = await UserTypes.findOne({
       where: {
-        id: req.person.roleId,
+        id: req.person.userTypeId,
       },
     });
     if (userTypesData && userTypesData?.typeName === "admin") {

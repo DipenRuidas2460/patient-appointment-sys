@@ -1,305 +1,19 @@
 const asyncHandler = require("express-async-handler");
 const { join } = require("path");
-const { sign } = require("jsonwebtoken");
 require("dotenv").config();
-const {
-  checkPassword,
-  encryptPassword,
-  generateString,
-} = require("../helper/side");
-const moment = require("moment");
-const { sendMail } = require("../helper/sendMail");
-const User = require("../models/user");
-const UserTypes = require("../models/userType");
-
-const secretKey = process.env.TOKEN_secret_key;
-const expiresIn = "24h";
-
-const addUser = asyncHandler(async (req, res) => {
-  try {
-    const { name, phone, email, password, roleId, specialty, status } =
-      req.body;
-
-    let profilePhoto = null;
-    const randomInRange = Math.floor(Math.random() * 10) + 1;
-    if (req?.files?.photo) {
-      profilePhoto = req.files.photo;
-      const imagePath = join(
-        __dirname,
-        "../uploads/profileImage/",
-        `${randomInRange}_profile_photo`
-      );
-      await profilePhoto.mv(imagePath);
-    }
-    const currentDate = moment().tz("Asia/Kolkata").format("YYYY-MM-DD, HH:mm");
-
-    if (email != "" || phone != "") {
-      const findEmail = await User.findOne({
-        where: { email: email },
-      });
-
-      const findPhoneNumber = await User.findOne({
-        where: { phone: phone },
-      });
-
-      if (findEmail) {
-        return res
-          .status(409)
-          .json({ status: "email conflict", msg: "Email is already present!" });
-      }
-
-      if (findPhoneNumber) {
-        return res.status(409).json({
-          status: "phone conflict",
-          msg: "Phone Number is already present!",
-        });
-      }
-    }
-
-    const passwrd = await encryptPassword(password);
-
-    const newReqData = {
-      name,
-      email,
-      password: passwrd,
-      phone,
-      photo: profilePhoto ? `${randomInRange}_profile_photo` : null,
-      roleId,
-      businessId,
-      specialty,
-      status,
-      createdTime: currentDate,
-    };
-
-    const userDetails = await User.create(newReqData);
-    const response = await userDetails.save();
-
-    const token = sign(
-      { id: userDetails.id, roleId: userDetails.roleId },
-      secretKey,
-      { expiresIn }
-    );
-
-    const mailData = {
-      respMail: email,
-      subject: "Welcome",
-      text: `Hi, ${name}. Welcome to Patient Appointment Management App.`,
-    };
-    await sendMail(mailData);
-
-    if (response) {
-      const {
-        id,
-        name,
-        email,
-        phone,
-        roleId,
-        businessId,
-        status,
-        createdTime,
-        photo,
-        specialty,
-      } = response;
-
-      const registerUserData = {
-        id,
-        name,
-        email,
-        phone,
-        roleId,
-        businessId,
-        status,
-        photo: photo ? photo : null,
-        specialty: specialty ? specialty : null,
-        token,
-        createdTime,
-      };
-
-      res.header("Authorization", `Bearer ${token}`);
-
-      return res.status(201).json({
-        status: true,
-        userData: registerUserData,
-        message: "User successfully created!",
-      });
-    } else {
-      return res
-        .status(400)
-        .json({ status: false, message: "User is not created!" });
-    }
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: false, message: "Something went wrong" });
-  }
-});
-
-const login = asyncHandler(async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(401).json({
-        status: "error",
-        message: "Send valid email and Password",
-      });
-    }
-
-    const userDetails = await User.findOne({ where: { email: email } });
-
-    if (!userDetails) {
-      return res
-        .status(401)
-        .json({ status: "error", message: "email incorrect" });
-    }
-
-    const isPassMatch = await checkPassword(password, userDetails.password);
-
-    if (!isPassMatch) {
-      return res
-        .status(401)
-        .json({ status: "error", message: "Incorrect password, try again" });
-    }
-
-    const token = sign(
-      { id: userDetails.id, roleId: userDetails.roleId },
-      secretKey,
-      { expiresIn }
-    );
-    const data = {
-      id: userDetails.id,
-      name: userDetails.name,
-      email: userDetails.email,
-      phone: userDetails.phone,
-      photo: userDetails.photo ? userDetails.photo : null,
-      specialty: userDetails.specialty ? userDetails.specialty : null,
-      roleId: userDetails.roleId,
-      businessId: userDetails.businessId,
-      status: userDetails.status,
-    };
-
-    res.header("Authorization", `Bearer ${token}`);
-
-    return res.status(200).json({
-      status: "success",
-      userdata: data,
-      token: token,
-      message: "Login successfull",
-    });
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: false, data: error.message, message: "Login fail" });
-  }
-});
-
-const logOut = asyncHandler(async (req, res) => {
-  try {
-    return res.status(200).json({
-      status: true,
-      msg: "Successfully Logged Out!",
-    });
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: false, data: error.message, message: "LogOut Failed!" });
-  }
-});
-
-const forgetPass = asyncHandler(async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const userDetails = await User.findOne({
-      where: { email: email },
-    });
-    if (!userDetails) {
-      return res.status(404).json({ status: false, message: "No user found" });
-    }
-
-    const token = generateString(20);
-    await User.update({ fpToken: token }, { where: { email: email } });
-
-    const mailData = {
-      respMail: email,
-      subject: "Forget Password",
-      text: `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <link rel="stylesheet" href="styles.css" />
-    <title>Static Template</title>
-  </head>
-  <body>
-    <h3>Click this link for changing Password</h3>
-    <p>${process.env.FRN_HOST}/resetpass/${token}</p>
-  </body>
-</html>
-`,
-    };
-    await sendMail(mailData);
-
-    return res.status(200).json({
-      status: "success",
-      token: token,
-      message: "Check your email for reset link",
-    });
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: false, message: "Something went wrong" });
-  }
-});
-
-const fpUpdatePass = asyncHandler(async (req, res) => {
-  try {
-    let reqBody = req.body;
-
-    const { token } = req.body;
-
-    const userInfo = await User.findOne({ where: { fpToken: token } });
-    if (!userInfo)
-      return res
-        .status(400)
-        .json({ status: 400, message: "Wrong link or link expired!" });
-
-    if (reqBody.password) {
-      reqBody.password = await encryptPassword(reqBody.password);
-    }
-
-    const response = await User.update(
-      { password: reqBody.password },
-      {
-        where: { fpToken: token },
-      }
-    );
-
-    return res.status(201).json({
-      status: response[0] === 0 ? 404 : 200,
-      data: response,
-      message:
-        response[0] === 0
-          ? "Nothing updated"
-          : "User Password changed successfully!",
-    });
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
-  }
-});
+const { checkPassword, encryptPassword } = require("../helper/side");
+const User = require("../models/User");
 
 const updateUser = asyncHandler(async (req, res) => {
   try {
     let reqBody = req.body;
     const userData = await User.findOne({ where: { id: req.person.id } });
+
+    if (!userData) {
+      return res
+        .status(200)
+        .json({ status: 404, msg: "Logged-In user can edit!" });
+    }
 
     let updatedImage = null;
     const randomInRange = Math.floor(Math.random() * 10) + 1;
@@ -322,20 +36,27 @@ const updateUser = asyncHandler(async (req, res) => {
       reqBody.photo = userData.photo ? userData.photo : updatedPhotoName;
     }
 
-    const response = await User.update(reqBody, {
+    await User.update(reqBody, {
       where: { id: req.person.id },
-    });
-
-    return res.status(200).json({
-      status: response[0] === 0 ? 404 : 200,
-      data: response,
-      message: response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
-    });
+    })
+      .then((response) => {
+        return res.status(200).json({
+          status: response[0] === 0 ? 404 : 200,
+          message:
+            response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
+      });
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error!" });
   }
 });
 
@@ -343,12 +64,7 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
   try {
     let reqBody = req.body;
     let userId = req.params.userId;
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
-      },
-    });
-    if (userTypesData && userTypesData?.typeName === "admin") {
+    if (req.person.id === 1) {
       const userData = await User.findOne({ where: { id: userId } });
 
       let updatedImage = null;
@@ -372,95 +88,116 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
         reqBody.photo = userData.photo ? userData.photo : updatedPhotoName;
       }
 
-      const response = await User.update(reqBody, {
+      await User.update(reqBody, {
         where: { id: userId },
-      });
-
-      return res.status(201).json({
-        status: response[0] === 0 ? 404 : 200,
-        data: response,
-        message:
-          response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
-      });
+      })
+        .then((response) => {
+          return res.status(200).json({
+            status: response[0] === 0 ? 404 : 200,
+            message:
+              response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          return res
+            .status(200)
+            .json({ status: 400, message: "An Error Occured!" });
+        });
     } else {
-      return res.status(403).json({ message: "Only Admin Can edit!" });
+      return res
+        .status(200)
+        .json({ status: 403, message: "Only Admin Can edit!" });
     }
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
 const getUserById = asyncHandler(async (req, res) => {
   try {
-    const response = await User.findOne({
+    await User.findOne({
       where: { id: req.person.id },
       attributes: [
         "id",
         "name",
         "email",
         "phone",
-        "roleId",
+        "userTypeId",
         "businessId",
         "status",
         "photo",
-        "specialty",
       ],
-    });
-
-    return res.status(200).json({
-      status: "success",
-      data: response,
-      profileImage: response.photo ? `/assets/image/${response.photo}` : null,
-      message: response ? "Successfully fetch data" : "User Not Present!",
-    });
+    })
+      .then((response) => {
+        return res.status(200).json({
+          status: response ? 200 : 404,
+          data: response,
+          profileImage: response.photo
+            ? `/assets/image/${response.photo}`
+            : null,
+          message: response ? "Successfully fetch data" : "User Not Present!",
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
+      });
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
 const getUserByAdminThroughId = asyncHandler(async (req, res) => {
   try {
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
-      },
-    });
-    if (userTypesData && userTypesData?.typeName === "admin") {
-      const response = await User.findOne({
+    if (req.person.id === 1 || req.person.id === 2) {
+      await User.findOne({
         where: { id: req.params.userId },
         attributes: [
           "id",
           "name",
           "email",
           "phone",
-          "roleId",
+          "userTypeId",
           "businessId",
           "status",
           "photo",
-          "specialty",
         ],
-      });
-
-      return res.status(200).json({
-        status: "success",
-        data: response,
-        profileImage: response.photo ? `/assets/image/${response.photo}` : null,
-        message: response ? "Successfully fetch data" : "User Not Present!",
-      });
+      })
+        .then((response) => {
+          return res.status(200).json({
+            status: response ? 200 : 404,
+            data: response,
+            profileImage: response.photo
+              ? `/assets/image/${response.photo}`
+              : null,
+            message: response ? "Successfully fetch data" : "User Not Present!",
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          return res
+            .status(200)
+            .json({ status: 400, message: "An Error Occured!" });
+        });
     } else {
-      return res.status(403).json({ message: "Only Admin Can access!" });
+      return res
+        .status(200)
+        .json({ status: 403, message: "Only Admin Can access!" });
     }
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
@@ -471,16 +208,16 @@ const updatePassword = asyncHandler(async (req, res) => {
     const { oldPassword, password } = req.body;
 
     if (!response) {
-      return res.status(404).json({
-        status: false,
+      return res.status(200).json({
+        status: 404,
         message: "User not Found, Please Register first!",
       });
     }
 
     if (!oldPassword || !password) {
       return res
-        .status(400)
-        .json({ status: false, message: "Please add Old and new password!" });
+        .status(200)
+        .json({ status: 400, message: "Please add Old and new password!" });
     }
 
     const isPassMatch = await checkPassword(
@@ -492,84 +229,179 @@ const updatePassword = asyncHandler(async (req, res) => {
       response.password = password;
       await response.save();
       return res.status(200).send({
-        status: true,
+        status: 200,
         data: response,
         message: "password changed successfully!",
       });
     } else {
       return res
-        .status(400)
-        .send({ status: false, message: "oldPassword is incorrect!!" });
+        .status(200)
+        .send({ status: 400, message: "oldPassword is incorrect!!" });
     }
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
-const getAllUsers = asyncHandler(async (req, res) => {
+const getAllUsersByAdmin = asyncHandler(async (req, res) => {
   try {
-    const response = await User.findAll({});
-    return res.status(200).json({
-      status: "success",
-      data: response,
-      message: response.length ? "Successfully fetch data" : "No data found",
-    });
+    if (req.person.id === 1) {
+      const { page, pageSize, filterInput } = req.body;
+      const filter = {};
+      if (filterInput) {
+        filter.name = {
+          [Op.like]: `%${filterInput}%`,
+        };
+      }
+      await User.findAndCountAll({
+        offset: (page - 1) * pageSize,
+        limit: Number(pageSize),
+        where: filter,
+      })
+        .then(({ count, rows }) => {
+          return res.status(200).json({
+            status: 200,
+            data: rows,
+            pagination: {
+              totalItems: count,
+              totalPages: Math.ceil(count / pageSize),
+              currentPage: page,
+              pageSize: pageSize,
+            },
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          return res
+            .status(200)
+            .json({ status: 400, message: "An Error Occured!" });
+        });
+    } else {
+      return res
+        .status(200)
+        .json({ status: 403, message: "Only Admin Can access all data!" });
+    }
   } catch (error) {
-    console.log(error.message);
-    return res.status(500).json({
-      status: 500,
-      message: "Something went wrong",
-      messageInfo: error,
-    });
+    console.log(error);
+    return res
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
+  }
+});
+
+const getAllUsersByBusinessAdmin = asyncHandler(async (req, res) => {
+  try {
+    if (req.person.id === 2) {
+      const { page, pageSize, filterInput, userTypeId } = req.body;
+      const filter = {};
+      if (filterInput) {
+        filter.name = {
+          [Op.like]: `%${filterInput}%`,
+        };
+      }
+
+      await User.findAll({ where: { userTypeId: 4 } })
+        .then(async (response) => {
+          if (response.length > 0) {
+            await User.findAndCountAll({
+              offset: (page - 1) * pageSize,
+              limit: Number(pageSize),
+              where: filter,
+            })
+              .then(({ count, rows }) => {
+                return res.status(200).json({
+                  status: 200,
+                  data: rows,
+                  pagination: {
+                    totalItems: count,
+                    totalPages: Math.ceil(count / pageSize),
+                    currentPage: page,
+                    pageSize: pageSize,
+                  },
+                });
+              })
+              .catch((err) => {
+                console.log(err);
+                return res
+                  .status(200)
+                  .json({ status: 400, message: "An Error Occured!" });
+              });
+          } else {
+            return res
+              .status(200)
+              .json({ status: 404, msg: "Data Not Present!" });
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          return res
+            .status(200)
+            .json({ status: 400, message: "An Error Occured!" });
+        });
+    } else {
+      return res.status(200).json({
+        status: 403,
+        message: "Only Business Admin Can access all data!",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
 const deleteUserByAdminThroughId = asyncHandler(async (req, res) => {
   try {
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
-      },
-    });
-    if (userTypesData && userTypesData?.typeName === "admin") {
-      const userData = await User.findOne({ where: { id: req.params.userId } });
-      if (userData) {
-        await User.destroy({
-          where: { id: req.params.userId },
-        });
+    if (req.person.id === 1) {
+      await User.findOne({ where: { id: req.params.userId } })
+        .then(async (userData) => {
+          if (userData) {
+            await User.destroy({
+              where: { id: req.params.userId },
+            });
 
-        return res.status(200).json({
-          status: "success",
-          message: "User data delete successfully!",
+            return res.status(200).json({
+              status: 200,
+              message: "User data delete successfully!",
+            });
+          } else {
+            return res
+              .status(200)
+              .json({ status: 404, message: "User data not found!" });
+          }
+        })
+
+        .catch((err) => {
+          console.log(err);
+          return res
+            .status(200)
+            .json({ status: 400, message: "An Error Occured!" });
         });
-      } else {
-        return res.status(404).json({ message: "User data not found!" });
-      }
     } else {
-      return res.status(403).json({ message: "Only Admin Can access!" });
+      return res
+        .status(200)
+        .json({ status: 403, message: "Only Admin Can access!" });
     }
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
 module.exports = {
-  login,
-  addUser,
-  forgetPass,
-  fpUpdatePass,
-  logOut,
   updateUser,
   getUserById,
   updatePassword,
-  getAllUsers,
+  getAllUsersByAdmin,
   updateUserByAdmin,
   getUserByAdminThroughId,
   deleteUserByAdminThroughId,
+  getAllUsersByBusinessAdmin,
 };

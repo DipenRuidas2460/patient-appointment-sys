@@ -1,348 +1,175 @@
+const Appoinments = require("../models/Appointments");
+const { Op } = require("sequelize");
+const { getDayName } = require("../helper/side");
+const BusinessTiming = require("../models/BusinessTiming");
 const asyncHandler = require("express-async-handler");
-const UserTypes = require("../models/userType");
-const Appointment = require("../models/appointment");
-const User = require("../models/user");
-const Business = require("../models/business");
+const User = require("../models/User");
 
-const createAppointment = asyncHandler(async (req, res) => {
-  try {
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
+async function generateAvailableSlots(businessTiming, requestDate, req, res) {
+  const availableSlot = [];
+
+  const dateObject = new Date(requestDate);
+  const openTimeParts = businessTiming.openTime.split(":");
+  const closeTimeParts = businessTiming.closeTime.split(":");
+  const lunchStartTimeParts = businessTiming.lunchStart.split(":");
+  const lunchEndTimeParts = businessTiming.lunchEnd.split(":");
+
+  let startTime = new Date(
+    dateObject.getFullYear(),
+    dateObject.getMonth() + 1,
+    dateObject.getDate(),
+    parseInt(openTimeParts[0]),
+    parseInt(openTimeParts[1])
+  );
+
+  const closeTime = new Date(
+    dateObject.getFullYear(),
+    dateObject.getMonth() + 1,
+    dateObject.getDate(),
+    parseInt(closeTimeParts[0]),
+    parseInt(closeTimeParts[1])
+  );
+
+  const lunchStart = new Date(
+    dateObject.getFullYear(),
+    dateObject.getMonth() + 1,
+    dateObject.getDate(),
+    parseInt(lunchStartTimeParts[0]),
+    parseInt(lunchStartTimeParts[1])
+  );
+
+  const lunchEnd = new Date(
+    dateObject.getFullYear(),
+    dateObject.getMonth() + 1,
+    dateObject.getDate(),
+    parseInt(lunchEndTimeParts[0]),
+    parseInt(lunchEndTimeParts[1])
+  );
+
+  const bookedAppointments = await Appoinments.findAll({
+    where: {
+      slot: {
+        [Op.gte]: dateObject,
+        [Op.lt]: new Date(dateObject.getTime() + 24 * 60 * 60 * 1000),
       },
-    });
-    if (
-      userTypesData &&
-      (userTypesData?.typeName === "patient" ||
-        userTypesData?.typeName === "admin")
-    ) {
-      const reqBody = req.body;
-      reqBody.userId = req.person.id;
-      const response = await Appointment.create(reqBody);
+    },
+  });
 
-      return res.status(201).json({
-        status: true,
-        response,
-        message: "Appointment created successfully!",
-      });
-    } else {
-      return res
-        .status(403)
-        .json({ message: "Only Admin and Patient Can Created!" });
+  const bookedSlots = bookedAppointments?.map(
+    (appointment) => appointment.slot
+  );
+
+  while (startTime < closeTime) {
+    const slotEndTime = new Date(startTime);
+    slotEndTime.setMinutes(slotEndTime.getMinutes() + businessTiming.slotTime);
+    if (!bookedSlots?.includes(startTime)) {
+      availableSlot.push({ start: new Date(startTime), end: slotEndTime });
     }
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: false, message: "Something went wrong" });
-  }
-});
-
-const fetchAllAppointment = asyncHandler(async (req, res) => {
-  try {
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
-      },
-    });
-    if (userTypesData && userTypesData?.typeName === "admin") {
-      const response = await Appointment.findAll(
-        {},
-        {
-          include: [
-            {
-              model: Business,
-              as: "business",
-              attributes: {
-                exclude: ["createdAt"],
-              },
-            },
-            {
-              model: User,
-              as: "patientInfo",
-              attributes: {
-                exclude: ["createdAt", "password", "fpToken", "specialty"],
-              },
-            },
-            {
-              model: User,
-              as: "doctorInfo",
-              attributes: {
-                exclude: ["createdAt", "password", "fpToken"],
-              },
-            },
-          ],
-        }
-      );
-      return res.status(200).json({
-        status: "success",
-        data: response,
-        message:
-          response.length > 0 ? "Successfully fetch data" : "Data not present!",
-      });
-    } else {
-      return res
-        .status(403)
-        .json({ message: "Only Admin Can Access all data!" });
+    startTime.setMinutes(
+      startTime.getMinutes() +
+        (businessTiming.slotTime + businessTiming.breakTime)
+    );
+    if (startTime >= lunchStart && startTime < lunchEnd) {
+      startTime = new Date(lunchEnd);
     }
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
   }
-});
 
-const fetchAppointmentByAppointmentId = asyncHandler(async (req, res) => {
-  try {
-    const response = await Appointment.findOne({
-      where: { id: req.params.appointmentId },
-      include: [
-        {
-          model: Business,
-          as: "business",
-          attributes: {
-            exclude: ["createdAt"],
-          },
-        },
-        {
-          model: User,
-          as: "patientInfo",
-          attributes: {
-            exclude: ["createdAt", "password", "fpToken", "specialty"],
-          },
-        },
-        {
-          model: User,
-          as: "doctorInfo",
-          attributes: {
-            exclude: ["createdAt", "password", "fpToken"],
-          },
-        },
-      ],
-    });
-    return res.status(200).json({
-      status: "success",
-      data: response,
-      message: response ? "Successfully fetch data" : "Data not present!",
-    });
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
-  }
-});
+  return availableSlot;
+}
 
-const fetchAllAppointmentByUserIdOrDoctorId = asyncHandler(async (req, res) => {
+const getAppointmentSlot = async (req, res) => {
   try {
-    const userTypesData = await UserTypes.findOne({
+    const { date, businessId } = req.body;
+
+    const dayName = getDayName(date);
+
+    await BusinessTiming.findOne({
       where: {
-        id: req.person.roleId,
+        businessId: businessId,
+        dayName: dayName,
       },
-    });
-    if (userTypesData && userTypesData?.typeName === "patient") {
-      const response = await Appointment.findAll({
-        where: { userId: req.person.id },
-
-        include: [
-          {
-            model: Business,
-            as: "business",
-            attributes: {
-              exclude: ["createdAt"],
-            },
-          },
-          {
-            model: User,
-            as: "patientInfo",
-            attributes: {
-              exclude: ["createdAt", "password", "fpToken", "specialty"],
-            },
-          },
-          {
-            model: User,
-            as: "doctorInfo",
-            attributes: {
-              exclude: ["createdAt", "password", "fpToken"],
-            },
-          },
-        ],
+    })
+      .then(async (response) => {
+        const responseData = await generateAvailableSlots(
+          response,
+          date,
+          req,
+          res
+        );
+        return res.status(200).json({ status: 200, data: responseData });
+      })
+      .catch((err) => {
+        console.log("error:-", err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
       });
-      return res.status(200).json({
-        status: "success",
-        data: response,
-        message:
-          response.length > 0 ? "Successfully fetch data" : "Data not present!",
-      });
-    } else if (userTypesData && userTypesData?.typeName === "doctor") {
-      const response = await Appointment.findAll({
-        where: { doctorId: req.person.id },
-
-        include: [
-          {
-            model: Business,
-            as: "business",
-            attributes: {
-              exclude: ["createdAt"],
-            },
-          },
-          {
-            model: User,
-            as: "patientInfo",
-            attributes: {
-              exclude: ["createdAt", "password", "fpToken", "specialty"],
-            },
-          },
-          {
-            model: User,
-            as: "doctorInfo",
-            attributes: {
-              exclude: ["createdAt", "password", "fpToken"],
-            },
-          },
-        ],
-      });
-      return res.status(200).json({
-        status: "success",
-        data: response,
-        message:
-          response.length > 0 ? "Successfully fetch data" : "Data not present!",
-      });
-    } else {
-      return res
-        .status(403)
-        .json({ message: "Only Patient or Doctor Can Access all data!" });
-    }
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: 500, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
+const fetchAllAppointsmentsAndExpert = asyncHandler(async (req, res) => {
+  try {
+    const { businessId } = req.body;
+    const { count1, rows1 } = await Appoinments.findAndCountAll({
+      where: { businessId: businessId },
+    });
+    const { count2, rows2 } = await User.findAndCountAll({
+      where: { businessId: businessId, userTypeId: 3 },
+    });
+
+    return res
+      .status(200)
+      .json({ status: 200, data: { appointments: count1, experts: count2 } });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
-const updateAppointmentByAppointmentId = asyncHandler(async (req, res) => {
+const fetchAllRecentOrTodayAppointsments = asyncHandler(async (req, res) => {
   try {
-    const reqBody = req.body;
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
-      },
-    });
+    const { businessId, status, page, pageSize } = req.body;
 
-    if (userTypesData && userTypesData?.typeName === "admin") {
-      const response = await Appointment.update(reqBody, {
-        where: { id: req.params.appointmentId },
-      });
-      return res.status(200).json({
-        status: response[0] === 0 ? 404 : 200,
-        data: response,
-        message:
-          response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
-      });
-    } else if (userTypesData && userTypesData?.typeName === "doctor") {
-      let obj = {};
-      if (reqBody?.appointmentDate) {
-        obj.appointmentDate = reqBody.appointmentDate;
-      }
-      if (reqBody?.appointmentTime) {
-        obj.appointmentTime = reqBody.appointmentTime;
-      }
-      if (reqBody?.businessId) {
-        obj.businessId = reqBody.businessId;
-      }
-
-      if (reqBody?.status) {
-        obj.status = reqBody.status;
-      }
-
-      const response = await Appointment.update(obj, {
-        where: { id: req.params.appointmentId },
-      });
-
-      return res.status(200).json({
-        status: response[0] === 0 ? 404 : 200,
-        data: response,
-        message:
-          response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
-      });
-    } else if (userTypesData && userTypesData?.typeName === "patient") {
-      let obj = {};
-      if (reqBody?.appointmentDate) {
-        obj.appointmentDate = reqBody.appointmentDate;
-      }
-      if (reqBody?.appointmentTime) {
-        obj.appointmentTime = reqBody.appointmentTime;
-      }
-      if (reqBody?.businessId) {
-        obj.businessId = reqBody.businessId;
-      }
-      if (reqBody?.doctorId) {
-        obj.doctorId = reqBody.doctorId;
-      }
-      if (reqBody?.status === "cancel") {
-        obj.status = reqBody.status;
-      }
-      const response = await Appointment.update(obj, {
-        where: { id: req.params.appointmentId },
-      });
-      return res.status(200).json({
-        status: response[0] === 0 ? 404 : 200,
-        data: response,
-        message:
-          response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
-      });
-    } else {
-      return res
-        .status(403)
-        .json({ message: "Please login to edit the appointment data!" });
-    }
-  } catch (error) {
-    console.log(error.message);
-    return res
-      .status(500)
-      .json({ status: false, message: "Something went wrong" });
-  }
-});
-
-const deleteAppointmentByAdmin = asyncHandler(async (req, res) => {
-  try {
-    const userTypesData = await UserTypes.findOne({
-      where: {
-        id: req.person.roleId,
-      },
-    });
-    if (userTypesData && userTypesData?.typeName === "admin") {
-      const response = await Appointment.findOne({
-        where: { id: req.params.appointmentId },
-      });
-      if (response) {
-        await Appointment.destroy({
-          where: { id: req.params.appointmentId },
-        });
+    await Appoinments.findAndCountAll({
+      offset: (page - 1) * pageSize,
+      limit: Number(pageSize),
+      where: { businessId: businessId, status: status },
+    })
+      .then(({ count, rows }) => {
         return res.status(200).json({
-          message: "Appoinment data deleted Successfully!",
+          status: 200,
+          data: rows,
+          pagination: {
+            totalItems: count,
+            totalPages: Math.ceil(count / pageSize),
+            currentPage: page,
+            pageSize: pageSize,
+          },
         });
-      } else {
-        return res.status(404).json({ message: "Data not found!" });
-      }
-    } else {
-      return res.status(403).json({ message: "Only Admin Can Delete!" });
-    }
+      })
+      .catch((err) => {
+        console.log(err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
+      });
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
     return res
-      .status(500)
-      .json({ status: false, message: "Something went wrong" });
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
   }
 });
 
 module.exports = {
-  createAppointment,
-  fetchAllAppointment,
-  fetchAppointmentByAppointmentId,
-  fetchAllAppointmentByUserIdOrDoctorId,
-  updateAppointmentByAppointmentId,
-  deleteAppointmentByAdmin,
+  getAppointmentSlot,
+  fetchAllAppointsmentsAndExpert,
+  fetchAllRecentOrTodayAppointsments,
 };

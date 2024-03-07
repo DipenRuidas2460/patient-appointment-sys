@@ -28,6 +28,21 @@ const generateString = (length) => {
   return `TX${result}`;
 };
 
+function getDayName(_date) {
+  const weekDay = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const date = new Date(_date);
+  const dayIndex = date.getDay();
+  return weekDay[dayIndex];
+}
+
 function getTimeDifference(time1, time2) {
   const date1 = new Date(`1970-01-01T${time1}:00Z`);
   const date2 = new Date(`1970-01-01T${time2}:00Z`);
@@ -104,4 +119,5 @@ module.exports = {
   getUserbyToken,
   generateRandomString,
   getTimeDifference,
+  getDayName
 };

@@ -1,50 +1,46 @@
-const { DataTypes } = require("sequelize");
+const { Model, DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const Business = require("./business");
+const Business = require("./Business");
 
-const BusinessTiming = sequelize.define(
-  "BusinessTiming",
+class BusinessTiming extends Model {}
+
+BusinessTiming.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       primaryKey: true,
       autoIncrement: true,
     },
-    dayName: {
-      type: DataTypes.STRING,
-    },
-    openingTime: {
-      type: DataTypes.TIME,
-    },
-    closingTime: {
-      type: DataTypes.TIME,
-    },
-    lunchTimeStart: {
-      type: DataTypes.TIME,
-    },
-    lunchTimeEnd: {
-      type: DataTypes.TIME,
-    },
-    breakTimeInMinutes: {
-      type: DataTypes.INTEGER,
-    },
-    sessionTimeInMinutes: {
-      type: DataTypes.INTEGER,
-    },
-    noOfSession: {
-      type: DataTypes.INTEGER,
-    },
-    isOpen: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
     businessId: {
+      type: DataTypes.BIGINT,
+    },
+    dayName: {
+      type: DataTypes.STRING(100),
+    },
+    openTime: {
+      type: DataTypes.TIME,
+    },
+    closeTime: {
+      type: DataTypes.TIME,
+    },
+    lunchStart: {
+      type: DataTypes.TIME,
+    },
+    lunchEnd: {
+      type: DataTypes.TIME,
+    },
+    slotTime: {
+      type: DataTypes.INTEGER,
+      comment: "Appointment Slot Time",
+    },
+    breakTime: {
       type: DataTypes.INTEGER,
     },
   },
   {
     tableName: "BusinessTiming",
-    updatedAt: false,
+    timestamps: false,
+    sequelize,
   }
 );
 

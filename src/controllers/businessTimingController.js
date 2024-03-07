@@ -1,35 +1,17 @@
 const asyncHandler = require("express-async-handler");
-const BusinessTiming = require("../models/businessTiming");
-const UserTypes = require("../models/userType");
+const BusinessTiming = require("../models/BusinessTiming");
+const UserTypes = require("../models/UserType");
 const { getTimeDifference } = require("../helper/side");
-const Business = require("../models/business");
+const Business = require("../models/Business");
 
 const createBusinessTiming = asyncHandler(async (req, res) => {
   try {
     const userTypesData = await UserTypes.findOne({
       where: {
-        id: req.person.roleId,
+        id: req.person.userTypeId,
       },
     });
     if (userTypesData && userTypesData?.typeName === "admin") {
-      const totalTime = getTimeDifference(
-        req.body.openingTime,
-        req.body.closingTime
-      );
-
-      const lunchBreak = getTimeDifference(
-        req.body.lunchTimeStart,
-        req.body.lunchTimeEnd
-      );
-
-      const timeDiff = totalTime - lunchBreak;
-      if (req.body.sessionTimeInMinutes && req.body.breakTimeInMinutes) {
-        req.body.noOfSession = Math.floor(
-          timeDiff /
-            (req.body.sessionTimeInMinutes + req.body.breakTimeInMinutes)
-        );
-      }
-
       const response = await BusinessTiming.create(req.body);
       return res.status(201).json({
         status: true,
@@ -112,7 +94,7 @@ const updateBusinessTimingByAdmin = asyncHandler(async (req, res) => {
   try {
     const userTypesData = await UserTypes.findOne({
       where: {
-        id: req.person.roleId,
+        id: req.person.userTypeId,
       },
     });
     if (userTypesData && userTypesData?.typeName === "admin") {
@@ -215,7 +197,7 @@ const deleteBusinessTimingByAdmin = asyncHandler(async (req, res) => {
   try {
     const userTypesData = await UserTypes.findOne({
       where: {
-        id: req.person.roleId,
+        id: req.person.userTypeId,
       },
     });
     if (userTypesData && userTypesData?.typeName === "admin") {

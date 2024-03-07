@@ -1,13 +1,13 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const UserTypes = require("./userType");
-const Business = require("./business");
+const UserTypes = require("./UserType");
+const Business = require("./Business");
 
 const User = sequelize.define(
   "User",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
       primaryKey: true,
       autoIncrement: true,
     },
@@ -26,17 +26,15 @@ const User = sequelize.define(
     photo: {
       type: DataTypes.STRING,
     },
-    specialty: {
-      type: DataTypes.STRING,
-    },
     status: {
-      type: DataTypes.STRING,
-    },
-    roleId: {
       type: DataTypes.INTEGER,
+    },
+    userTypeId: {
+      type: DataTypes.INTEGER,
+      comment: '1 = Admin, 2 = Business Admin, 3 = sub Admin/expert, 4 = Customer'
     },
     businessId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.BIGINT,
     },
     fpToken: {
       type: DataTypes.STRING,
@@ -52,7 +50,7 @@ const User = sequelize.define(
   await User.sync({ force: false });
 })();
 
-User.belongsTo(UserTypes, { foreignKey: "roleId" });
-User.belongsTo(Business, { foreignKey: "businessId" });
+User.belongsTo(UserTypes, { foreignKey: "userTypeId" });
+User.belongsTo(Business, { foreignKey: "businessId", as: "businessInfo" });
 
 module.exports = User;

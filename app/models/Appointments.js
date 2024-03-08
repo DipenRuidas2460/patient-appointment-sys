@@ -15,17 +15,22 @@ Appointments.init(
     businessId: {
       type: DataTypes.BIGINT,
     },
-    userId: {
+    customerId: {
       type: DataTypes.BIGINT,
     },
     expertId: {
       type: DataTypes.BIGINT,
+    },
+    date: {
+      type: DataTypes.DATE,
     },
     slot: {
       type: DataTypes.DATE,
     },
     status: {
       type: DataTypes.INTEGER,
+      comment:
+        "1 = recent not confirm appointment , 2 == confirm - today's appointment, 3 = join - checkIn",
     },
     createAt: {
       type: DataTypes.DATE,
@@ -35,17 +40,13 @@ Appointments.init(
     },
   },
   {
-    tableName: "Appointments",
+    tableName: "xcd_appointment",
     timestamps: false,
     sequelize,
   }
 );
 
-(async () => {
-  await Appointments.sync({ force: false });
-})();
-
-Appointments.belongsTo(User, { foreignKey: "userId", as: "users" });
+Appointments.belongsTo(User, { foreignKey: "customerId", as: "customers" });
 Appointments.belongsTo(User, { foreignKey: "expertId", as: "experts" });
 Appointments.belongsTo(Business, { foreignKey: "businessId", as: "business" });
 

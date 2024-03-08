@@ -1,4 +1,4 @@
-const { Model, DataTypes } = require("sequelize");
+const { Model, DataTypes, Sequelize } = require("sequelize");
 const sequelize = require("../config/dbConfig");
 
 class Business extends Model {}
@@ -42,14 +42,10 @@ Business.init(
     },
   },
   {
-    tableName: "Business",
+    tableName: "xcd_business",
     timestamps: false,
     sequelize,
   }
 );
-
-(async () => {
-  await Business.sync({ force: false });
-})();
 
 module.exports = Business;

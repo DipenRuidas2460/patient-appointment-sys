@@ -38,15 +38,11 @@ BusinessTiming.init(
     },
   },
   {
-    tableName: "BusinessTiming",
+    tableName: "xcd_business_timing",
     timestamps: false,
     sequelize,
   }
 );
-
-(async () => {
-  await BusinessTiming.sync({ force: false });
-})();
 
 BusinessTiming.belongsTo(Business, {
   foreignKey: "businessId",

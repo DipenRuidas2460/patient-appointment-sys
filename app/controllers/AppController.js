@@ -6,16 +6,16 @@ const moment = require("moment");
 
 const fetchAllAppointsmentsAndExpert = async (req, res) => {
   try {
-    const { count1, rows1 } = await Appointments.findAndCountAll({
-      where: { businessId: req.person.businessId },
-    });
-    const { count2, rows2 } = await User.findAndCountAll({
-      where: { businessId: req.person.businessId, userType: 3 },
-    });
 
+    const appointment = await Appointments.findAndCountAll({
+      where: { businessId: req.person.businessId, status:1 },
+    });
+    const expert = await User.findAndCountAll({
+      where: { businessId: req.person.businessId, userType: 3 }
+    })
     return res
       .status(200)
-      .json({ status: 200, data: { appointments: count1, experts: count2 } });
+      .json({ status: 200, data: { appointments: appointment.count, experts: expert.count } });
   } catch (error) {
     console.log(error);
     return res
@@ -197,7 +197,7 @@ const addCustomerOrExpert = async (req, res) => {
       city,
       address,
       zipCode,
-      dob,
+      dob : new Date(dob),
       photo: profilePhoto ? `${randomInRange}_profile_photo` : null,
       userType: userType,
       businessId: req.person.businessId,
@@ -275,7 +275,7 @@ const addCustomerOrExpert = async (req, res) => {
 const updateCustomerOrExpert = async (req, res) => {
   try {
     let reqBody = req.body;
-    const userData = await User.findOne({ where: { id: reqBody.userId } });
+    const userData = await User.findOne({ where: { id: reqBody.id } });
 
     if (!userData) {
       return res.status(200).json({ status: 404, msg: "Data not Present!" });
@@ -306,14 +306,18 @@ const updateCustomerOrExpert = async (req, res) => {
       reqBody.userType = userData.userType;
     }
 
+    if (reqBody.dob) {
+      reqBody.dob = new Date(reqBody.dob);
+    }
+
     await User.update(reqBody, {
-      where: { id: reqBody.userId },
+      where: { id: reqBody.id },
     })
       .then((response) => {
         return res.status(200).json({
-          status: response[0] === 0 ? 404 : 200,
+          status: response[0] === 0 ? 203 : 200,
           message:
-            response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
+            response[0] === 0 ? "No Changes made!" : "Successfully Updated!",
         });
       })
       .catch((err) => {
@@ -332,16 +336,16 @@ const updateCustomerOrExpert = async (req, res) => {
 
 const deleteCustomerOrExpert = async (req, res) => {
   try {
-    await User.findOne({ where: { id: req.body.userId } })
+    await User.findOne({ where: { id: req.params.id } })
       .then(async (userData) => {
         if (userData) {
           await User.destroy({
-            where: { id: req.body.userId },
+            where: { id: req.params.id },
           });
 
           return res.status(200).json({
             status: 200,
-            message: "User data delete successfully!",
+            message: "Data deleted successfully!",
           });
         } else {
           return res
@@ -370,6 +374,7 @@ const fetchAllRecentAppointsments = async (req, res) => {
     await Appointments.findAndCountAll({
       offset: (page - 1) * pageSize,
       limit: Number(pageSize),
+      order: [['createAt','ASC']],
       where: { businessId: req.person.businessId, status: 1 },
     })
       .then(({ count, rows }) => {
@@ -406,6 +411,7 @@ const fetchAllTodaysAppointsments = async (req, res) => {
     await Appointments.findAndCountAll({
       offset: (page - 1) * pageSize,
       limit: Number(pageSize),
+      order: [['createAt','ASC']],
       where: {
         [Op.and]: [
           { businessId: req.person.businessId },

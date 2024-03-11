@@ -9,7 +9,7 @@ const { validateTokenMiddleware } = require("../middleware/auth");
 
 // --------------------------- Auth Routes ---------------------------------------------------------------------
 router.post("/login", AuthController.loginUser);
-router.get("/ping", AuthController.ping);
+router.post("/ping", AuthController.ping);
 
 // ------------------------ Business Routes --------------------------------------------------------------------
 router.post("/business/register", BusinessController.registerBusiness);
@@ -20,7 +20,7 @@ router.get(
 );
 
 // ---------------------------- Dashboard Routes ----------------------------------------------------------------
-router.get(
+router.post(
   "/dashboard",
   validateTokenMiddleware,
   AppController.fetchAllAppointsmentsAndExpert
@@ -75,6 +75,18 @@ router.put(
   AppointmentController.checkInAppointment
 );
 
+router.post(
+  "/appointment/customer/all",
+  validateTokenMiddleware,
+  AppointmentController.getAllCustomer
+);
+
+router.post(
+  "/appointment/expert/all",
+  validateTokenMiddleware,
+  AppointmentController.getAllExpert
+);
+
 // --------------------------------- other Routes ------------------------------------------------------------------
 
 router.post(
@@ -94,7 +106,7 @@ router.put(
   AppController.updateCustomerOrExpert
 );
 router.delete(
-  "/user/delete",
+  "/user/delete/:id",
   validateTokenMiddleware,
   AppController.deleteCustomerOrExpert
 );

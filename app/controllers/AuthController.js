@@ -1,5 +1,6 @@
 require("dotenv").config();
 const { checkPassword, validateToken } = require("../helpers/main");
+const Business = require("../models/Business");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const expiresIn = "1y";
@@ -10,12 +11,10 @@ const loginUser = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res
-        .status(200)
-        .json({
-          status: 401,
-          message: "Please Provide Username and Password!",
-        });
+      return res.status(200).json({
+        status: 401,
+        message: "Please Provide Username and Password!",
+      });
     }
 
     const user = await User.findOne({ where: { email: username } });
@@ -30,12 +29,10 @@ const loginUser = async (req, res) => {
     // Check the User Password with Given Password
     const isPasswordValid = await checkPassword(password, user.password);
     if (!isPasswordValid) {
-      return res
-        .status(200)
-        .json({
-          status: 401,
-          message: "Incorrect Password, Please Try Again!",
-        });
+      return res.status(200).json({
+        status: 401,
+        message: "Incorrect Password, Please Try Again!",
+      });
     }
 
     const token = jwt.sign(
@@ -83,9 +80,17 @@ const ping = async (req, res) => {
         "email",
         "businessId",
         "phone",
+        "address",
+        "city",
+        "zipCode",
+        "dob",
         "userType",
         "status",
       ],
+      include: {
+        model: Business,
+        as: "business",
+      },
     })
       .then((userData) => {
         return res.status(200).json({ status: 200, data: userData });

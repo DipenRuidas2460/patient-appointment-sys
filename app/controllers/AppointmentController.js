@@ -3,6 +3,7 @@ const { Op } = require("sequelize");
 const { getDayName } = require("../helpers/main");
 const BusinessTiming = require("../models/BusinessTiming");
 const Appointments = require("../models/Appointments");
+const User = require("../models/User");
 
 async function generateAvailableSlots(businessTiming, requestDate) {
   const availableSlot = [];
@@ -12,6 +13,8 @@ async function generateAvailableSlots(businessTiming, requestDate) {
   const closeTimeParts = businessTiming.closeTime.split(":");
   const lunchStartTimeParts = businessTiming.lunchStart.split(":");
   const lunchEndTimeParts = businessTiming.lunchEnd.split(":");
+
+
 
   let startTime = new Date(
     dateObject.getFullYear(),
@@ -78,17 +81,18 @@ async function generateAvailableSlots(businessTiming, requestDate) {
 
 const getAppointmentSlot = async (req, res) => {
   try {
-    const { date, businessId } = req.body;
+    const { date } = req.body;
 
     const dayName = getDayName(date);
-
+    console.log(dayName)
     await BusinessTiming.findOne({
       where: {
-        businessId: businessId,
+        businessId: req.person.businessId,
         dayName: dayName,
       },
     })
       .then(async (response) => {
+
         const responseData = await generateAvailableSlots(response, date);
 
         return res.status(200).json({ status: 200, data: responseData });
@@ -279,9 +283,9 @@ const acceptAppointment = async (req, res) => {
       )
         .then((response) => {
           return res.status(200).json({
-            status: response[0] === 0 ? 404 : 200,
+            status: response[0] === 0 ? 203 : 200,
             message:
-              response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
+              response[0] === 0 ? "No Changes made!" : "Successfully Updated!",
           });
         })
         .catch((err) => {
@@ -291,12 +295,10 @@ const acceptAppointment = async (req, res) => {
             .json({ status: 400, message: "An Error Occured!" });
         });
     } else {
-      return res
-        .status(200)
-        .json({
-          status: 403,
-          message: "Only Admin Can Confirm the appointment!",
-        });
+      return res.status(200).json({
+        status: 403,
+        message: "Only Admin Can Confirm the appointment!",
+      });
     }
   } catch (error) {
     console.log(error);
@@ -315,9 +317,9 @@ const checkInAppointment = async (req, res) => {
       )
         .then((response) => {
           return res.status(200).json({
-            status: response[0] === 0 ? 404 : 200,
+            status: response[0] === 0 ? 203 : 200,
             message:
-              response[0] === 0 ? "Nothing updated" : "Successfully Updated!",
+              response[0] === 0 ? "No Changes made!" : "Successfully Updated!",
           });
         })
         .catch((err) => {
@@ -327,13 +329,61 @@ const checkInAppointment = async (req, res) => {
             .json({ status: 400, message: "An Error Occured!" });
         });
     } else {
-      return res
-        .status(200)
-        .json({
-          status: 403,
-          message: "User not check-in by self!",
-        });
+      return res.status(200).json({
+        status: 403,
+        message: "User not check-in by self!",
+      });
     }
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
+const getAllCustomer = async (req, res) => {
+  try {
+    await User.findAll({
+      where: { userType: 4, status: 1 },
+    })
+      .then((data) => {
+        return res.status(200).json({
+          status: 200,
+          data: data,
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
+      });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
+const getAllExpert = async (req, res) => {
+  try {
+    await User.findAll({
+      where: { userType: 3, status: 1 },
+    })
+      .then((data) => {
+        return res.status(200).json({
+          status: 200,
+          data: data,
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
+      });
   } catch (error) {
     console.log(error);
     return res
@@ -348,5 +398,7 @@ module.exports = {
   createAppointment,
   getAllAppointment,
   acceptAppointment,
-  checkInAppointment
+  checkInAppointment,
+  getAllCustomer,
+  getAllExpert
 };

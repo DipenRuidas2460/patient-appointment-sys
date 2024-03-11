@@ -1,4 +1,5 @@
 const express = require('express')
+const upload = require("express-fileupload");
 const app = express()
 require("dotenv").config();
 const bodyParser = require("body-parser");
@@ -7,6 +8,7 @@ const nocache = require("nocache")
 
 app.use(nocache());
 app.use(cors());
+app.use(upload());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 

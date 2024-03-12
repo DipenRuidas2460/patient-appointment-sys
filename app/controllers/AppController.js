@@ -6,16 +6,16 @@ const moment = require("moment");
 
 const fetchAllAppointsmentsAndExpert = async (req, res) => {
   try {
-
     const appointment = await Appointments.findAndCountAll({
-      where: { businessId: req.person.businessId, status:1 },
+      where: { businessId: req.person.businessId, status: 1 },
     });
     const expert = await User.findAndCountAll({
-      where: { businessId: req.person.businessId, userType: 3 }
-    })
-    return res
-      .status(200)
-      .json({ status: 200, data: { appointments: appointment.count, experts: expert.count } });
+      where: { businessId: req.person.businessId, userType: 3 },
+    });
+    return res.status(200).json({
+      status: 200,
+      data: { appointments: appointment.count, experts: expert.count },
+    });
   } catch (error) {
     console.log(error);
     return res
@@ -128,6 +128,34 @@ const getAllExpert = async (req, res) => {
   }
 };
 
+const getAdmin = async (req, res) => {
+  try {
+    await User.findAll({
+      where: { id: req.person.id, userType: 2 },
+      attributes: {
+        exclude: ["password", "fpToken"],
+      },
+    })
+      .then((response) => {
+        return res.status(200).json({
+          status: 200,
+          response,
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
+      });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
 const addCustomerOrExpert = async (req, res) => {
   try {
     const {
@@ -197,7 +225,7 @@ const addCustomerOrExpert = async (req, res) => {
       city,
       address,
       zipCode,
-      dob : new Date(dob),
+      dob: new Date(dob),
       photo: profilePhoto ? `${randomInRange}_profile_photo` : null,
       userType: userType,
       businessId: req.person.businessId,
@@ -374,8 +402,20 @@ const fetchAllRecentAppointsments = async (req, res) => {
     await Appointments.findAndCountAll({
       offset: (page - 1) * pageSize,
       limit: Number(pageSize),
-      order: [['createAt','ASC']],
+      order: [["createdAt", "ASC"]],
       where: { businessId: req.person.businessId, status: 1 },
+      include: [
+        {
+          model: User,
+          as: "customers",
+          attributes: ["id", "name", "email", "phone"],
+        },
+        {
+          model: User,
+          as: "experts",
+          attributes: ["id", "name", "email", "phone"],
+        },
+      ],
     })
       .then(({ count, rows }) => {
         return res.status(200).json({
@@ -411,7 +451,7 @@ const fetchAllTodaysAppointsments = async (req, res) => {
     await Appointments.findAndCountAll({
       offset: (page - 1) * pageSize,
       limit: Number(pageSize),
-      order: [['createAt','ASC']],
+      order: [["createdAt", "ASC"]],
       where: {
         [Op.and]: [
           { businessId: req.person.businessId },
@@ -424,6 +464,18 @@ const fetchAllTodaysAppointsments = async (req, res) => {
           },
         ],
       },
+      include: [
+        {
+          model: User,
+          as: "customers",
+          attributes: ["id", "name", "email", "phone"],
+        },
+        {
+          model: User,
+          as: "experts",
+          attributes: ["id", "name", "email", "phone"],
+        },
+      ],
     })
       .then(({ count, rows }) => {
         return res.status(200).json({
@@ -460,4 +512,5 @@ module.exports = {
   getAllExpert,
   fetchAllRecentAppointsments,
   fetchAllTodaysAppointsments,
+  getAdmin,
 };

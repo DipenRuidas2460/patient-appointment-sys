@@ -1,6 +1,6 @@
 const { Model, DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
-const Business = require("./Business");
+// const Business = require("./Business");
 
 class BusinessTiming extends Model {}
 
@@ -44,9 +44,9 @@ BusinessTiming.init(
   }
 );
 
-BusinessTiming.belongsTo(Business, {
-  foreignKey: "businessId",
-  as: "business",
-});
+// BusinessTiming.belongsTo(Business, {
+//   foreignKey: "businessId",
+//   as: "business",
+// });
 
 module.exports = BusinessTiming;

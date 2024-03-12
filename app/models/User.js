@@ -55,6 +55,12 @@ User.init(
     fpToken: {
       type: DataTypes.STRING(255),
     },
+    createdAt: {
+      type: DataTypes.DATE,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+    },
   },
   {
     tableName: "xcd_user",

@@ -1,5 +1,6 @@
 const { Model, DataTypes } = require("sequelize");
 const sequelize = require("../config/dbConfig");
+const BusinessTiming = require("./BusinessTiming");
 
 class Business extends Model {}
 
@@ -40,6 +41,9 @@ Business.init(
     createdAt: {
       type: DataTypes.DATE,
     },
+    updatedAt: {
+      type: DataTypes.DATE,
+    },
   },
   {
     tableName: "xcd_business",
@@ -47,5 +51,7 @@ Business.init(
     sequelize,
   }
 );
+
+Business.hasMany(BusinessTiming, { foreignKey: "businessId", as: "businessTiming" });
 
 module.exports = Business;

@@ -3,6 +3,7 @@ const BusinessTiming = require("../models/BusinessTiming");
 const User = require("../models/User");
 const sequelize = require("../config/dbConfig");
 const { encryptPassword } = require("../helpers/main");
+const moment = require("moment");
 
 const registerBusiness = async (req, res) => {
   try {
@@ -13,6 +14,8 @@ const registerBusiness = async (req, res) => {
 
       // Extract business information from the request
       const { businessInfo, businessTime, userInfo } = req.body;
+
+      const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
 
       // Create a new Business instance with the extracted information
       const newBusiness = await Business.create(
@@ -25,6 +28,7 @@ const registerBusiness = async (req, res) => {
           zipCode: businessInfo.zipCode,
           phoneNo: businessInfo.phone,
           email: businessInfo.email,
+          createdAt: currentDate,
         },
         { transaction }
       );
@@ -59,6 +63,7 @@ const registerBusiness = async (req, res) => {
           dob: userInfo.dob,
           userType: 2, // Business Admin
           businessId: newBusiness.id, // Assign the business ID to the admin user
+          createdAt: currentDate,
         },
         { transaction }
       );
@@ -91,28 +96,18 @@ const fetchBusinessAndAllBusinessTiming = async (req, res) => {
   try {
     await Business.findOne({
       where: { id: req.person.businessId },
+      include: {
+        model: BusinessTiming,
+        as: "businessTiming",
+      },
     })
-      .then(async (businessData) => {
-        if (businessData) {
-          await BusinessTiming.findAll({
-            where: { businessId: businessData.id },
-          })
-            .then((businessTiming) => {
-              return res
-                .status(200)
-                .json({
-                  status: 200,
-                  businessData,
-                  businessTiming,
-                  msg: "Data fetch Success!",
-                });
-            })
-            .catch((err) => {
-              console.log(err);
-              return res
-                .status(200)
-                .json({ status: 400, msg: "An Error Occured!" });
-            });
+      .then((response) => {
+        if (response) {
+          return res.status(200).json({
+            status: 200,
+            response,
+            msg: "Data fetch Success!",
+          });
         } else {
           return res.status(200).json({ status: 404, msg: "Data not found!" });
         }

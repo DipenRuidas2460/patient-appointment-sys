@@ -27,12 +27,15 @@ Appointments.init(
     slot: {
       type: DataTypes.DATE,
     },
+    endTime: {
+      type: DataTypes.DATE,
+    },
     status: {
       type: DataTypes.INTEGER,
       comment:
         "1 = recent not confirm appointment , 2 == confirm - today's appointment, 3 = join - checkIn",
     },
-    createAt: {
+    createdAt: {
       type: DataTypes.DATE,
     },
     updatedAt: {

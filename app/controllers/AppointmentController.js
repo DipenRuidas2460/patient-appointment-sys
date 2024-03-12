@@ -4,6 +4,7 @@ const { getDayName } = require("../helpers/main");
 const BusinessTiming = require("../models/BusinessTiming");
 const Appointments = require("../models/Appointments");
 const User = require("../models/User");
+const moment = require("moment-timezone");
 
 async function generateAvailableSlots(businessTiming, requestDate) {
   const availableSlot = [];
@@ -13,8 +14,6 @@ async function generateAvailableSlots(businessTiming, requestDate) {
   const closeTimeParts = businessTiming.closeTime.split(":");
   const lunchStartTimeParts = businessTiming.lunchStart.split(":");
   const lunchEndTimeParts = businessTiming.lunchEnd.split(":");
-
-
 
   let startTime = new Date(
     dateObject.getFullYear(),
@@ -64,13 +63,16 @@ async function generateAvailableSlots(businessTiming, requestDate) {
   while (startTime < closeTime) {
     const slotEndTime = new Date(startTime);
     slotEndTime.setMinutes(slotEndTime.getMinutes() + businessTiming.slotTime);
+
     if (!bookedSlots.some((slot) => slot.getTime() === startTime.getTime())) {
       availableSlot.push({ start: new Date(startTime), end: slotEndTime });
     }
+
     startTime.setMinutes(
       startTime.getMinutes() +
         (businessTiming.slotTime + businessTiming.breakTime)
     );
+
     if (startTime >= lunchStart && startTime < lunchEnd) {
       startTime = new Date(lunchEnd);
     }
@@ -84,7 +86,7 @@ const getAppointmentSlot = async (req, res) => {
     const { date } = req.body;
 
     const dayName = getDayName(date);
-    console.log(dayName)
+
     await BusinessTiming.findOne({
       where: {
         businessId: req.person.businessId,
@@ -92,7 +94,6 @@ const getAppointmentSlot = async (req, res) => {
       },
     })
       .then(async (response) => {
-
         const responseData = await generateAvailableSlots(response, date);
 
         return res.status(200).json({ status: 200, data: responseData });
@@ -116,6 +117,9 @@ const createAppointment = async (req, res) => {
       if (req.person.userType === 4) {
         reqBody.customerId = req.person.id;
       }
+      const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
+      reqBody.businessId = req.person.businessId;
+      reqBody.createdAt = currentDate;
       await Appointments.create(reqBody)
         .then((response) => {
           return res.status(201).json({
@@ -133,7 +137,7 @@ const createAppointment = async (req, res) => {
     } else {
       return res
         .status(200)
-        .json({ status: 403, message: "Expert not created!" });
+        .json({ status: 403, message: "Expert not created appointment!" });
     }
   } catch (error) {
     console.log(error.message);
@@ -240,45 +244,12 @@ const getAllAppointment = async (req, res) => {
   }
 };
 
-const deleteAppointment = async (req, res) => {
-  try {
-    await Appoinments.findOne({ where: { id: req.body.appointmentId } })
-      .then(async (response) => {
-        if (response) {
-          await Appoinments.destroy({
-            where: { id: req.body.appointmentId },
-          });
-
-          return res.status(200).json({
-            status: 200,
-            message: "Appointment Data delete successfully!",
-          });
-        } else {
-          return res
-            .status(200)
-            .json({ status: 404, message: "Appointment data not found!" });
-        }
-      })
-
-      .catch((err) => {
-        console.log(err);
-        return res
-          .status(200)
-          .json({ status: 400, message: "An Error Occured!" });
-      });
-  } catch (error) {
-    console.log(error);
-    return res
-      .status(200)
-      .json({ status: 500, message: "Internal Server Error" });
-  }
-};
-
 const acceptAppointment = async (req, res) => {
   try {
     if (req.person.userType === 2 || req.person.userType === 1) {
+      const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
       await Appoinments.update(
-        { status: 2 },
+        { status: 2, updatedAt: currentDate },
         { where: { id: req.body.appointmentId } }
       )
         .then((response) => {
@@ -311,8 +282,9 @@ const acceptAppointment = async (req, res) => {
 const checkInAppointment = async (req, res) => {
   try {
     if (req.person.userType !== 4) {
+      const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
       await Appoinments.update(
-        { status: 3 },
+        { status: 3, updatedAt: currentDate },
         { where: { id: req.body.appointmentId } }
       )
         .then((response) => {
@@ -334,6 +306,40 @@ const checkInAppointment = async (req, res) => {
         message: "User not check-in by self!",
       });
     }
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(200)
+      .json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
+const deleteAppointment = async (req, res) => {
+  try {
+    await Appoinments.findOne({ where: { id: req.params.appointmentId } })
+      .then(async (response) => {
+        if (response) {
+          await Appoinments.destroy({
+            where: { id: req.params.appointmentId },
+          });
+
+          return res.status(200).json({
+            status: 200,
+            message: "Appointment Data delete successfully!",
+          });
+        } else {
+          return res
+            .status(200)
+            .json({ status: 404, message: "Appointment data not found!" });
+        }
+      })
+
+      .catch((err) => {
+        console.log(err);
+        return res
+          .status(200)
+          .json({ status: 400, message: "An Error Occured!" });
+      });
   } catch (error) {
     console.log(error);
     return res
@@ -400,5 +406,5 @@ module.exports = {
   acceptAppointment,
   checkInAppointment,
   getAllCustomer,
-  getAllExpert
+  getAllExpert,
 };

@@ -1,10 +1,11 @@
-const express = require('express')
+const express = require("express");
 const upload = require("express-fileupload");
-const app = express()
+const app = express();
 require("dotenv").config();
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const nocache = require("nocache")
+const nocache = require("nocache");
+const { validateTokenMiddleware } = require("./middleware/auth");
 
 app.use(nocache());
 app.use(cors());
@@ -24,11 +25,11 @@ app.use(function (req, res, next) {
   next();
 });
 
-const appRoute = require("./routes/appRoute");
-app.use("/api", appRoute);
-
-
+const secureRoutes = require("./routes/secureRoutes");
+const unSecureRoutes = require("./routes/unSecureRoutes");
+app.use("/api", validateTokenMiddleware, secureRoutes);
+app.use("/api", unSecureRoutes);
 
 app.listen(process.env.APP_PORT, () => {
-    console.log(`Server is connected at port ${process.env.APP_PORT}`);
+  console.log(`Server is connected at port ${process.env.APP_PORT}`);
 });

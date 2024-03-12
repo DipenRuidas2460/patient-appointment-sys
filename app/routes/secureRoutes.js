@@ -39,7 +39,7 @@ router.post("/appointments/all", AppointmentController.getAllAppointment);
 
 router.put("/appointments/accept", AppointmentController.acceptAppointment);
 
-router.put("/appointments/checkin", AppointmentController.checkInAppointment);
+router.put("/appointments/update", AppointmentController.updateAppointment);
 
 router.post("/appointment/customer/all", AppointmentController.getAllCustomer);
 

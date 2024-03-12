@@ -256,7 +256,9 @@ const acceptAppointment = async (req, res) => {
           return res.status(200).json({
             status: response[0] === 0 ? 203 : 200,
             message:
-              response[0] === 0 ? "No Changes made!" : "Successfully Updated!",
+              response[0] === 0
+                ? "No Changes made!"
+                : "Appointment accepted successfully!",
           });
         })
         .catch((err) => {
@@ -279,14 +281,18 @@ const acceptAppointment = async (req, res) => {
   }
 };
 
-const checkInAppointment = async (req, res) => {
+const updateAppointment = async (req, res) => {
   try {
     if (req.person.userType !== 4) {
       const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
-      await Appoinments.update(
-        { status: 3, updatedAt: currentDate },
-        { where: { id: req.body.appointmentId } }
-      )
+      if (req.body.status) {
+        req.body.status = req.body.status;
+      }
+
+      req.body.updatedAt = currentDate;
+      await Appoinments.update(req.body, {
+        where: { id: req.body.appointmentId },
+      })
         .then((response) => {
           return res.status(200).json({
             status: response[0] === 0 ? 203 : 200,
@@ -404,7 +410,7 @@ module.exports = {
   createAppointment,
   getAllAppointment,
   acceptAppointment,
-  checkInAppointment,
+  updateAppointment,
   getAllCustomer,
   getAllExpert,
 };

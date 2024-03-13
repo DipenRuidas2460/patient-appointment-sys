@@ -43,7 +43,7 @@ const registerBusiness = async (req, res) => {
             closeTime: timing.closeTime,
             lunchStart: timing.lunchStart,
             lunchEnd: timing.lunchEnd,
-            slotTime: 45,
+            slotTime: timing.slotTime,
             breakTime: timing.breakTime,
           },
           { transaction }

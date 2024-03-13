@@ -27,8 +27,9 @@ app.use(function (req, res, next) {
 
 const secureRoutes = require("./routes/secureRoutes");
 const unSecureRoutes = require("./routes/unSecureRoutes");
-app.use("/api", validateTokenMiddleware, secureRoutes);
 app.use("/api", unSecureRoutes);
+app.use("/api", validateTokenMiddleware, secureRoutes);
+
 
 app.listen(process.env.APP_PORT, () => {
   console.log(`Server is connected at port ${process.env.APP_PORT}`);

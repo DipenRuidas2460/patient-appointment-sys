@@ -285,12 +285,13 @@ const updateAppointment = async (req, res) => {
   try {
     if (req.person.userType !== 4) {
       const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
+      const updated = {}
       if (req.body.status) {
-        req.body.status = req.body.status;
+        updated.status = req.body.status;
       }
 
-      req.body.updatedAt = currentDate;
-      await Appoinments.update(req.body, {
+      updated.updatedAt = currentDate;
+      await Appoinments.update(updated, {
         where: { id: req.body.appointmentId },
       })
         .then((response) => {

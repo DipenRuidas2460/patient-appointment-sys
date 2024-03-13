@@ -304,7 +304,7 @@ const updateCustomerOrExpert = async (req, res) => {
   try {
     let reqBody = req.body;
     const userData = await User.findOne({ where: { id: reqBody.id } });
-
+    const updateData = {};
     if (!userData) {
       return res.status(200).json({ status: 404, msg: "Data not Present!" });
     }
@@ -322,23 +322,47 @@ const updateCustomerOrExpert = async (req, res) => {
       await updatedImage.mv(imagePath);
     }
 
+    if (reqBody.name) {
+      updateData.name = reqBody.name
+    }
+
+    if (reqBody.email) {
+      updateData.email = reqBody.email;
+    }
+
+    if (reqBody.address) {
+      updateData.address = reqBody.address;
+    }
+
+    if (reqBody.city) {
+      updateData.city = reqBody.city;
+    }
+
+    if (reqBody.zipCode) {
+      updateData.zipCode = reqBody.zipCode;
+    }
+
+    if (reqBody.phone) {
+      updateData.phone = reqBody.phone;
+    }
+
+    if (reqBody.status) {
+      updateData.status = reqBody.status;
+    }
+
     if (reqBody.password) {
-      reqBody.password = await encryptPassword(reqBody.password);
+      updateData.password = await encryptPassword(reqBody.password);
     }
 
     if (updatedImage) {
-      reqBody.photo = userData.photo ? userData.photo : updatedPhotoName;
-    }
-
-    if (reqBody.userType) {
-      reqBody.userType = userData.userType;
+      updateData.photo = userData.photo ? userData.photo : updatedPhotoName;
     }
 
     if (reqBody.dob) {
-      reqBody.dob = new Date(reqBody.dob);
+      updateData.dob = new Date(reqBody.dob);
     }
 
-    await User.update(reqBody, {
+    await User.update(updateData, {
       where: { id: reqBody.id },
     })
       .then((response) => {

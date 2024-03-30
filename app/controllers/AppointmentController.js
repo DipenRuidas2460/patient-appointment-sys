@@ -5,6 +5,7 @@ const BusinessTiming = require("../models/BusinessTiming");
 const Appointments = require("../models/Appointments");
 const User = require("../models/User");
 const moment = require("moment-timezone");
+const moment1 = require("moment");
 
 async function generateAvailableSlots(businessTiming, requestDate) {
   const availableSlot = [];
@@ -120,20 +121,93 @@ const createAppointment = async (req, res) => {
       const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
       reqBody.businessId = req.person.businessId;
       reqBody.createdAt = currentDate;
-      await Appointments.create(reqBody)
-        .then((response) => {
-          return res.status(201).json({
-            status: 200,
-            response,
-            message: "Appointment created successfully!",
-          });
-        })
-        .catch((err) => {
-          console.log(err);
-          return res
-            .status(200)
-            .json({ status: 400, message: "An Error Occured!" });
+
+      if (reqBody.recurring == 1) {
+        const obj = { ...reqBody, to: reqBody.to };
+
+        const allApointment = await Appoinments.findAll({
+          where: { businessId: req.person.businessId },
         });
+
+        const slotTime = JSON.stringify(obj.slot).slice(11, 18);
+        const slotEndTime = JSON.stringify(obj.endTime).slice(11, 18);
+
+        const startDate = moment1(JSON.stringify(obj.date));
+        const endDate = moment1(JSON.stringify(obj.to));
+
+        let currentDate1 = startDate.clone();
+        let sltTime = null;
+        let endTime = null;
+        while (currentDate1.isSameOrBefore(endDate)) {
+          if (currentDate1.day() === 6) {
+            currentDate1 = currentDate1.format("YYYY-MM-DD");
+            sltTime = `${currentDate1} ${slotTime}`;
+            endTime = `${currentDate1} ${slotEndTime}`;
+            if (allApointment.length > 0) {
+              for (let i = 0; i < allApointment.length; i++) {
+                if (JSON.stringify(allApointment[i].slot) === sltTime) {
+                  return res.status(200).json({
+                    status: 404,
+                    message: "Slots are already booked!",
+                  });
+                } else {
+                  obj.date = currentDate1;
+                  obj.slot = moment1(sltTime).toDate();
+                  obj.endTime = moment1(endTime).toDate();
+                  await Appointments.create(obj)
+                    .then((response) => {
+                      return res.status(201).json({
+                        status: 200,
+                        response,
+                        message: "Appointment created successfully!",
+                      });
+                    })
+                    .catch((err) => {
+                      console.log(err);
+                      return res
+                        .status(200)
+                        .json({ status: 400, message: "An Error Occured!" });
+                    });
+                }
+              }
+            } else {
+              obj.date = currentDate1;
+              obj.slot = moment1(sltTime).toDate();
+              obj.endTime = moment1(endTime).toDate();
+              await Appointments.create(obj)
+                .then((response) => {
+                  return res.status(201).json({
+                    status: 200,
+                    response,
+                    message: "Appointment created successfully!",
+                  });
+                })
+                .catch((err) => {
+                  console.log(err);
+                  return res
+                    .status(200)
+                    .json({ status: 400, message: "An Error Occured!" });
+                });
+            }
+          }
+          currentDate1.add(1, "day");
+        }
+      } else {
+        await Appointments.create(reqBody)
+          .then((response) => {
+            return res.status(201).json({
+              status: 200,
+              response,
+              message: "Appointment created successfully!",
+            });
+          })
+          .catch((err) => {
+            console.log(err);
+            return res
+              .status(200)
+              .json({ status: 400, message: "An Error Occured!" });
+          });
+      }
     } else {
       return res
         .status(200)
@@ -285,7 +359,7 @@ const updateAppointment = async (req, res) => {
   try {
     if (req.person.userType !== 4) {
       const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
-      const updated = {}
+      const updated = {};
       if (req.body.status) {
         updated.status = req.body.status;
       }

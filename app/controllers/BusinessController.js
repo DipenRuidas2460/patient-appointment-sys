@@ -17,6 +17,17 @@ const registerBusiness = async (req, res) => {
 
       const currentDate = moment().format("YYYY-MM-DD, HH:mm:ss");
 
+      const findEmail = await Business.findOne({
+        where: { email: businessInfo.email },
+      });
+
+      if (findEmail) {
+        return res.status(200).json({
+          status: 404,
+          message: "This email is already present!",
+        });
+      }
+
       // Create a new Business instance with the extracted information
       const newBusiness = await Business.create(
         {
@@ -48,6 +59,17 @@ const registerBusiness = async (req, res) => {
           },
           { transaction }
         );
+      }
+
+      const customerEmail = await User.findOne({
+        where: { email: userInfo.email },
+      });
+
+      if (customerEmail) {
+        return res.status(200).json({
+          status: 404,
+          message: "Duplicate email!",
+        });
       }
 
       // Create admin user for the business

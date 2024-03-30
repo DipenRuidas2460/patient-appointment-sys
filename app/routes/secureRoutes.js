@@ -5,6 +5,7 @@ const AuthController = require("../controllers/AuthController");
 const AppointmentController = require("../controllers/AppointmentController");
 const AppController = require("../controllers/AppController");
 const BusinessController = require("../controllers/BusinessController");
+const CustomerBusinessController = require("../controllers/CustomerBusinessController");
 
 // --------------------------- Auth Routes ---------------------------------------------------------------------
 router.post("/ping", AuthController.ping);
@@ -44,6 +45,12 @@ router.put("/appointments/update", AppointmentController.updateAppointment);
 router.post("/appointment/customer/all", AppointmentController.getAllCustomer);
 
 router.post("/appointment/expert/all", AppointmentController.getAllExpert);
+
+// --------------------------------- Customer Business Routes ------------------------------------------------------
+
+router.post("/customer-business/create", CustomerBusinessController.createCustomerBusiness);
+
+router.post("/customer-business/all", CustomerBusinessController.fetchAllCustomerByBusinessId);
 
 // --------------------------------- other Routes ------------------------------------------------------------------
 
